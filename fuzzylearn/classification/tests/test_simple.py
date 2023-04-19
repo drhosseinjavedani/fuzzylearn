@@ -50,7 +50,7 @@ X_train = pipeline.fit_transform(X_train,y_train)
 X_test = pipeline.transform(X_test)
 
 
-model = FLClassifier(number_of_intervals=6,threshold=0.7,metric = 'manhattan').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
+model = FLClassifier(number_of_intervals=6,threshold=0.1,metric = 'manhattan').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
 y_pred = model.predict(X=X_test)
 
 print(classification_report(y_test, y_pred))

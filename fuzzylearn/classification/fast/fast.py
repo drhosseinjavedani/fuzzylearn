@@ -136,6 +136,8 @@ class FLfastClassifier:
         trained = {}
         X = kwargs['X']
         y = kwargs['y']
+        print(y)
+        print(type(y))
         metric = kwargs['metric']
         threshold = kwargs['threshold']
     
@@ -159,6 +161,7 @@ class FLfastClassifier:
                 j_index+=1
             temp = np.mean(lhs, 0).tolist()
             lhss[i_index] = temp
+            print(rhs)
             rhs = list(itertools.chain(*rhs))
             
 
@@ -217,5 +220,4 @@ class FLfastClassifier:
 
 
         return predictions
-
 

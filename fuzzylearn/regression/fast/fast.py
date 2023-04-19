@@ -1,14 +1,13 @@
 from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
-from sklearn.metrics.pairwise import paired_distances
-from statistics import mode
+from sklearn.metrics.pairwise import pairwise_distances
+from statistics import mode, mean
 import itertools
 import asyncio
 import time
 
-
-class FLClassifier:
+class FLfastRegressor:
     """FuzzyLearning class"""
 
     def __init__(self,*args,**kwargs):
@@ -16,7 +15,11 @@ class FLClassifier:
         self.metric=kwargs['metric']
         self.threshold=kwargs['threshold']
         self.trained = {}
-    
+        self.X_paired_weights=self.output_weights=None
+        self.X_train_F = None
+        self.smaller_better = True
+        self.rhss=None
+        self.lhss=None
     @property
     def number_of_intervals(self):
         return self._number_of_intervals
@@ -134,30 +137,33 @@ class FLClassifier:
         y = kwargs['y']
         metric = kwargs['metric']
         threshold = kwargs['threshold']
-        first_index = 0
-        for first_row in X:
-            rhs = []
+    
+        X_paired_weights = pairwise_distances(X, X,metric=metric)
+        if self.smaller_better:
+            X_paired_weights[X_paired_weights>self.threshold] = np.inf
+        else:
+            print('TODO')
+        
+        i_index = 0
+        lhss = np.empty(shape=X.shape)
+        rhss= np.empty(shape=y.shape)
+        for row in X_paired_weights:
             lhs = []
-            lhs.append(first_row)
-            rhs.append(y[first_index,:])
-            
-            second_index = 0
-            for _ in X:
-                if first_index!=second_index:
-                    sampled_row = X[first_index,:]
-                    candidate_row = X[second_index,:]
-                    distance_metric = paired_distances([sampled_row], [candidate_row],metric=metric)
-                    if distance_metric < threshold:
-                        lhs.append(candidate_row)
-                        rhs.append(y[second_index,:])
-                second_index +=1
+            rhs =[]
+            j_index=0
+            for member in row:
+                if member !=np.inf:
+                    lhs.append(self.X_train_F[j_index,:])
+                    rhs.append(y[j_index])
+                j_index+=1
+            temp = np.mean(lhs, 0).tolist()
+            lhss[i_index] = temp
             rhs = list(itertools.chain(*rhs))
-            if len(rhs)>0:
-                rhs=mode(rhs)
-            lhs = [np.mean(lhs, 0).tolist()]
-            trained[first_index]=[first_row,lhs,rhs]
-            first_index+=1
-        return trained
+            
+            rhss[i_index] = mean(rhs)
+            i_index+=1
+    
+        return lhss,rhss
 
 
     def trained_model_for_X_y(self,*args, **kwargs):
@@ -172,13 +178,10 @@ class FLClassifier:
         if isinstance(y,pd.DataFrame):
             y, y_cols = self._pd_to_np(data=y)
         
-        trained = self._lhs_rhs_creator(X=X,y=y,metric=metric,threshold=threshold)
+        lhss,rhss = self._lhs_rhs_creator(X=X,y=y,metric=metric,threshold=threshold)
 
-        self.trained=trained
+        return lhss,rhss
 
-        return self.trained
-
-    #@background
     def fit(self,*args, **kwargs):
         """ Fit function."""
 
@@ -190,8 +193,9 @@ class FLClassifier:
         X_train,y_train,X_valid,y_valid = self._process_train_data(X_train=X_train,y_train=y_train,X_valid=X_valid,y_valid=y_valid)
         # fuzzifying X_train_new
         X_train_F = self._fuzzifying(X=X_train,number_of_intervals=self.number_of_intervals)
+        self.X_train_F=X_train_F
         # training and return rhs and lhs
-        self.trained = self.trained_model_for_X_y(X=X_train_F,y=y_train,metric=self.metric,threshold=self.threshold)
+        self.lhss,self.rhss = self.trained_model_for_X_y(X=X_train_F,y=y_train,metric=self.metric,threshold=self.threshold)
 
         return self
     
@@ -200,21 +204,15 @@ class FLClassifier:
         """Predict function"""
         X_test = kwargs['X']
         X_test_F = self._fuzzifying(X=X_test,number_of_intervals=self.number_of_intervals)
-        
         predictions =[]
-        index=0
-        for row in X_test_F:
-            max_membership_for_sample = []
-            sampled_row = row
-            for index_in_train in self.trained:
-                lhs= self.trained[index_in_train][1]
-                max_ds = 0
-                for lh in lhs:
-                    paired_d = paired_distances([sampled_row], [lh],metric=self.metric)
-                    max_ds = max_ds + paired_d[0]/len(lhs)
-                max_membership_for_sample.append(max_ds)
-            min_index=np.argmin(max_membership_for_sample)
-            y_forecast = self.trained[min_index][2]
-            predictions.append(y_forecast)
+        y_paired_weights = pairwise_distances(X_test_F, self.lhss,metric=self.metric)
+
+        index = 0
+        for y_p in y_paired_weights:
+            y_index= np.argmin(y_p,axis=0)
+            predictions.append(self.rhss[y_index])
+            index+=1
+
 
         return predictions
+
