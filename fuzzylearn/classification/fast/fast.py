@@ -6,7 +6,7 @@ from statistics import mode
 import itertools
 import asyncio
 import time
-
+import math
 
 class FLfastClassifier:
     """FuzzyLearning class"""
@@ -64,10 +64,24 @@ class FLfastClassifier:
 
         number_of_intervals = kwargs['number_of_intervals']
         index = 0
+        n = len(data.T)
         for col in data.T:
             min_col = col.min()
             max_col = col.max()
-            len_col = int((max_col-min_col)/number_of_intervals)
+            if isinstance(number_of_intervals,int):
+                len_col = int((max_col-min_col)/number_of_intervals)
+            if isinstance(number_of_intervals, list):
+                if all([isinstance(item, int) for item in number_of_intervals]):
+                    len_col = int((max_col-min_col)/number_of_intervals[index])
+            if number_of_intervals=='sturges':
+                len_col = int(math.log(n,2))+1
+            if number_of_intervals=='rice':
+                len_col = int(2*n**1/3)
+            if number_of_intervals=='freedman':
+                q3, q1 = np.percentile(data.T[:,index], [75 ,25])
+                iqr = q3 - q1
+                h = 2*iqr/(n**1/3)
+                len_col = int((max_col-min_col)/h)
             split_dict[index] = [min_col,max_col,len_col]
             index+=1
         return split_dict
@@ -127,8 +141,10 @@ class FLfastClassifier:
         split_dict = self._fuzzify_info(data = X, number_of_intervals=number_of_intervals)
         index = 0
         for _ in X.T:
-            if split_dict[index][2]!=0:
+            if split_dict[index][2]!=0 and not isinstance(split_dict[index][2],list):
                 X[:,index]=((X[:,index]-split_dict[index][0])/split_dict[index][2]).round(decimals=0).astype(int)
+            if isinstance(split_dict[index][2],list):
+                X[:,index]=((X[:,index]-split_dict[index][0])/split_dict[index][2][index]).round(decimals=0).astype(int)
             index+=1
         return X
 
@@ -136,8 +152,6 @@ class FLfastClassifier:
         trained = {}
         X = kwargs['X']
         y = kwargs['y']
-        print(y)
-        print(type(y))
         metric = kwargs['metric']
         threshold = kwargs['threshold']
     
@@ -161,7 +175,6 @@ class FLfastClassifier:
                 j_index+=1
             temp = np.mean(lhs, 0).tolist()
             lhss[i_index] = temp
-            print(rhs)
             rhs = list(itertools.chain(*rhs))
             
 
