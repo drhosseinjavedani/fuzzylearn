@@ -12,14 +12,15 @@ from optuna.samplers import TPESampler
 from optuna.pruners import HyperbandPruner
 from zoish.feature_selectors.shap_selectors import ShapFeatureSelector
 from sklearn.model_selection import train_test_split
+from fuzzylearn.util.read_data import read_data_from_gdrive_or_local
 
-data = pd.read_csv('fuzzylearn/data/raw_train_all_pp_pd_su_df_after_adjustment_train_data_0.5_label_total_12_trained_model.csv', sep=",")
+data = read_data_from_gdrive_or_local('UPDRS_I')
 print(data.columns)
 
 cols_to_drop =[
     'subject_id',
     'Unnamed: 0',
-    'label_total',
+    'label_i',
 
     'mo0nth0',
     'mo0nth06',
@@ -51,7 +52,7 @@ cols_to_drop =[
 # drop some columns
 
 
-data["label"] = data["label_total"].astype(int)
+data["label"] = data["label_i"].astype(int)
 
 # # Train test split
 
@@ -94,8 +95,8 @@ pipeline =Pipeline([
             # drop constant features
             #('dropconstantfeatures',DropConstantFeatures(tol=0.8, missing_values='ignore')),
             # int missing values imputers
-            #('intimputer', MeanMedianImputer(
-            #    imputation_method='median', variables=int_cols)),
+            ('intimputer', MeanMedianImputer(
+                imputation_method='median', variables=int_cols)),
             ('floatimputer', MeanMedianImputer(
                 imputation_method='mean', variables=float_cols)),
 
@@ -106,7 +107,7 @@ X_test = pipeline.transform(X_test)
 
 
 start_time = time.time()
-model = FLfastClassifier(number_of_intervals=13,threshold=0.5,metric = 'euclidean').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
+model = FLfastClassifier(number_of_intervals=15,threshold=0.7,metric = 'euclidean').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
 
 start_time = time.time()
@@ -124,29 +125,30 @@ print(f1_score(y_test, y_pred))
 
 
 shared_features=set([
-                'PGS000193_Coleman_JRI_PRS_1138_Major_depression_Mol_Psychiatry_2020_GRCh37_to_GRCh38_1138_',
-                'mds_updrs_part_iii_summary_score',
-                'on_other_pd_medications',
-                'PGS001747_Tanigawa_Y_PRS_767_WA_MD_in_tract_cingulate_gyrus_part_of_cingulum_R_medRxiv_2021_GRCh37_to_GRCh38_677_',
-                'code_upd2308a_right_leg_agility',
-                'code_upd2307a_right_toe_tapping',
-                'code_upd2110_pat_quest_urinary_problems',
-                'PGS001619_Tanigawa_Y_PRS_1916_Volume_of_grey_matter_in_Vermis_VIIIb_Cerebellum_medRxiv_2021_GRCh37_to_GRCh38_1715_',               
-                'code_upd2303e_rigidity_left_lower_extremity',
-                'code_upd2210_tremor',
-                'code_upd2207_handwriting',
+                'mds_updrs_part_i_summary_score',
+                'code_upd2107_pat_quest_sleep_problems',
+                'PGS002249_Lourida_I_PRS_249273_Alzheimer_disease_JAMA_2019_NR_as_GRCh38_246084_',
                 'mds_updrs_part_ii_summary_score',
-                'code_upd2303b_rigidity_rt_upper_extremity',
+                'enrollment_months_after_baseline',
+                'mds_updrs_part_i_sub_score',
                 'moca_total_score',
-                'code_upd2303d_rigidity_rt_lower_extremity',
-                'moca12_attention_serial_7s',
-                'code_upd2208_doing_hobbies_and_other_activities',
-                'mod_schwab_england_pct_adl_score',
-                'code_upd2315b_postural_tremor_of_left_hand',
-                'code_upd2314_body_bradykinesia',
-                'code_upd2304b_left_finger_tapping',
+                'code_upd2109_pat_quest_pain_and_other_sensations',
+                'moca_visuospatial_executive_subscore',
+                'PGS001641_Tanigawa_Y_PRS_1005_Volume_of_white_matter_normalised_for_head_size_medRxiv_2021_GRCh37_to_GRCh38_900_',
+                'mds_updrs_part_iii_summary_score',
+                'code_upd2207_handwriting',
+                'age_at_baseline',
+                'code_upd2105_apathy',
+                'moca_abstraction_subscore',
+                'moca_orientation_subscore',
+                'moca11_attention_vigilance',
+                'code_upd2111_pat_quest_constipation_problems',
+                'code_upd2211_get_out_of_bed_car_or_deep_chair',
+                'moca_language_subscore',
+                'code_upd2106_dopamine_dysregulation_syndrome_features',
+                'code_upd2315a_postural_tremor_of_right_hand',
                 'code_upd2204_eating_tasks',
-                'code_upd2318_consistency_of_rest_tremor',
+                'code_upd2314_body_bradykinesia',
 
             ])
 
@@ -171,8 +173,8 @@ pipeline_selected_features =Pipeline([
             # drop constant features
             #('dropconstantfeatures',DropConstantFeatures(tol=0.8, missing_values='ignore')),
             # int missing values imputers
-            #('intimputer', MeanMedianImputer(
-            #    imputation_method='median', variables=int_cols)),
+            ('intimputer', MeanMedianImputer(
+                imputation_method='median', variables=int_cols)),
             ('floatimputer', MeanMedianImputer(
                 imputation_method='mean', variables=float_cols)),
 
@@ -183,7 +185,7 @@ X_test = pipeline_selected_features.transform(X_test)
 
 
 start_time = time.time()
-model = FLfastClassifier(number_of_intervals='rice',threshold=0.9,metric = 'manhattan').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
+model = FLfastClassifier(number_of_intervals=15,threshold=0.7,metric = 'euclidean').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
 
 start_time = time.time()

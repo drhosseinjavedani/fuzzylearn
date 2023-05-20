@@ -11,10 +11,11 @@ import optuna
 from optuna.samplers import TPESampler
 from optuna.pruners import HyperbandPruner
 from zoish.feature_selectors.shap_selectors import ShapFeatureSelector
+from fuzzylearn.util.read_data import read_data_from_gdrive_or_local
 
 
 
-all_data = pd.read_csv("fuzzylearn/data/tot_merged_ukbb.csv")
+all_data = read_data_from_gdrive_or_local('TOT_MERGED_UKBB')
 data_for_train_test_split=all_data[0:30000]
 complete_separate_data=all_data[60000:70000]
 

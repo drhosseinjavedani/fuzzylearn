@@ -12,10 +12,12 @@ from optuna.samplers import TPESampler
 from optuna.pruners import HyperbandPruner
 from zoish.feature_selectors.shap_selectors import ShapFeatureSelector
 from sklearn.model_selection import train_test_split
+from fuzzylearn.util.read_data import read_data_from_gdrive_or_local
 
-data = pd.read_csv('fuzzylearn/data/raw_train_all_pp_pd_su_df_after_adjustment_train_data_0.5_label_ii_12_trained_model.csv', sep=",")
-print(data.columns)
 
+# read data UPDRS_I
+
+data = read_data_from_gdrive_or_local('UPDRS_II')
 cols_to_drop =[
     'subject_id',
     'Unnamed: 0',
@@ -183,7 +185,7 @@ X_test = pipeline_selected_features.transform(X_test)
 
 
 start_time = time.time()
-model = FLfastClassifier(number_of_intervals=8,threshold=0.2,metric = 'euclidean').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
+model = FLfastClassifier(number_of_intervals=15,threshold=0.7,metric = 'euclidean').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
 
 start_time = time.time()

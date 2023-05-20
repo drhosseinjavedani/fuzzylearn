@@ -12,8 +12,9 @@ from optuna.samplers import TPESampler
 from optuna.pruners import HyperbandPruner
 from zoish.feature_selectors.shap_selectors import ShapFeatureSelector
 from sklearn.model_selection import train_test_split
+from fuzzylearn.util.read_data import read_data_from_gdrive_or_local
 
-data = pd.read_csv('fuzzylearn/data/raw_train_all_pp_pd_su_df_after_adjustment_train_data_0.5_label_iii_12_trained_model.csv', sep=",")
+data = read_data_from_gdrive_or_local('UPDRS_III')
 print(data.columns)
 
 cols_to_drop =[
@@ -94,8 +95,8 @@ pipeline =Pipeline([
             # drop constant features
             #('dropconstantfeatures',DropConstantFeatures(tol=0.8, missing_values='ignore')),
             # int missing values imputers
-            ('intimputer', MeanMedianImputer(
-                imputation_method='median', variables=int_cols)),
+            # ('intimputer', MeanMedianImputer(
+            #     imputation_method='median', variables=int_cols)),
             ('floatimputer', MeanMedianImputer(
                 imputation_method='mean', variables=float_cols)),
 
@@ -172,8 +173,8 @@ pipeline_selected_features =Pipeline([
             # drop constant features
             #('dropconstantfeatures',DropConstantFeatures(tol=0.8, missing_values='ignore')),
             # int missing values imputers
-            ('intimputer', MeanMedianImputer(
-                imputation_method='median', variables=int_cols)),
+            # ('intimputer', MeanMedianImputer(
+            #     imputation_method='median', variables=int_cols)),
             ('floatimputer', MeanMedianImputer(
                 imputation_method='mean', variables=float_cols)),
 

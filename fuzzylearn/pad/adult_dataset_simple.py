@@ -1,4 +1,4 @@
-from fuzzylearn.classification.simple.simple import FLClassifier
+from fuzzylearn.pad.simple.simple import FLClassifier
 from sklearn.metrics import classification_report,confusion_matrix,f1_score,roc_auc_score
 from feature_engine.imputation import CategoricalImputer, MeanMedianImputer
 from category_encoders import OrdinalEncoder
