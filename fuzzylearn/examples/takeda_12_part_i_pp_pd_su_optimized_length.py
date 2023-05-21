@@ -18,6 +18,7 @@ from fuzzylearn.util.read_data import read_data_from_gdrive_or_local
 # read data UPDRS_I
 data = read_data_from_gdrive_or_local('UPDRS_I')
 
+print(data.head())
 cols_to_drop =[
     'subject_id',
     'Unnamed: 0',
