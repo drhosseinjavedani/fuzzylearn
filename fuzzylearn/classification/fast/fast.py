@@ -224,13 +224,42 @@ class FLfastClassifier:
         X_test_F = self._fuzzifying(X=X_test,number_of_intervals=self.number_of_intervals)
         predictions =[]
         y_paired_weights = pairwise_distances(X_test_F, self.lhss,metric=self.metric)
-
         index = 0
         for y_p in y_paired_weights:
             y_index= np.argmin(y_p,axis=0)
             predictions.append(self.rhss[y_index])
             index+=1
-
-
         return predictions
+
+    
+    def feature_improtance(self,*args,**kwargs):
+        """Feature improtance"""
+        import matplotlib.pyplot as plt
+        lhss=self.lhss
+        num_columns = lhss.shape[1]
+        num_rows = lhss.shape[0]
+        x_indices = np.arange(num_columns)
+        y_indices = np.arange(num_rows)
+        print('lhss.shape')
+        print(lhss.shape)
+        # Get the number of rows in the array
+        # Select the column index to be plotted on the x-axis
+        column_index = 1
+
+        # Extract the column values and row indices
+        column_values = lhss[:, column_index]
+        row_indices = np.arange(lhss.shape[0])
+
+        # Create a scatter plot
+        plt.scatter(column_values, row_indices)
+
+        # Set labels and a title for the plot
+        plt.xlabel('Column Values')
+        plt.ylabel('Row Index')
+        plt.title('Scatter Plot')
+
+        # Show the plot
+        plt.show()
+
+
 
