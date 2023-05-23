@@ -236,30 +236,26 @@ class FLfastClassifier:
         """Feature improtance"""
         import matplotlib.pyplot as plt
         lhss=self.lhss
+        # Get the number of columns in the array
         num_columns = lhss.shape[1]
-        num_rows = lhss.shape[0]
-        x_indices = np.arange(num_columns)
-        y_indices = np.arange(num_rows)
-        print('lhss.shape')
-        print(lhss.shape)
-        # Get the number of rows in the array
-        # Select the column index to be plotted on the x-axis
-        column_index = 1
 
-        # Extract the column values and row indices
-        column_values = lhss[:, column_index]
-        row_indices = np.arange(lhss.shape[0])
+        # Generate the x-axis values for the bars
+        x_values = np.arange(num_columns)
 
-        # Create a scatter plot
-        plt.scatter(column_values, row_indices)
-
+        # Create a bar plot for each row
+        for i in range(lhss.shape[0]):
+                    plt.bar(x_values, lhss[i, :], label=f'Row {i+1}')
+        # Create lines connecting the bars
+        for i in range(lhss.shape[0] - 1):
+            plt.plot(x_values, lhss[i, :], linestyle='-', color='black')
         # Set labels and a title for the plot
-        plt.xlabel('Column Values')
-        plt.ylabel('Row Index')
-        plt.title('Scatter Plot')
+        plt.xlabel('Column Index')
+        plt.ylabel('Values')
+        plt.title('Bar Plot of Rows')
+
+        # Display a legend for the rows
+        plt.legend()
 
         # Show the plot
         plt.show()
-
-
 
