@@ -163,6 +163,8 @@ print("--- %s seconds for prediction ---" % (time.time() - start_time))
 
 
 
+model.feature_improtance()
+
 print("classification_report :")
 print(classification_report(y_test, y_pred))
 print("confusion_matrix : ")
@@ -172,18 +174,4 @@ print(roc_auc_score(y_test, y_pred))
 print("f1_score : ")
 print(f1_score(y_test, y_pred))
 
-
-# X_unseen=X_unseen[selected_features]
-# X_unseen = pipeline.transform(X_unseen)
-# y_pred = model.predict(X=X_unseen)
-
-
-# print("classification_report for unseen:")
-# print(classification_report(y_unseen, y_pred))
-# print("confusion_matrix for unseen: ")
-# print(confusion_matrix(y_unseen, y_pred))
-# print("roc_auc_score for unseen: ")
-# print(roc_auc_score(y_unseen, y_pred))
-# print("f1_score for unseen: ")
-# print(f1_score(y_unseen, y_pred))
 

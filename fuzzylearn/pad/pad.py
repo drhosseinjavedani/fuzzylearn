@@ -46,3 +46,13 @@ print(np.dot(A,B))
 l = [np.array([1,2]),np.array([1,3])]
 
 print([np.mean(l, 0).tolist()])
+
+
+A = np.array(
+    [
+    [1,20,30],
+    [1,2,40],
+    [1,5,5],
+    ])
+A *= np.tri(*A.shape)
+print(A)

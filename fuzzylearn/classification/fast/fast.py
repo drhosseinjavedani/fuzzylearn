@@ -68,7 +68,93 @@ class FLfastClassifier:
         """A wrapper for asyncio task make for loops faster"""
         def wrapped(*args, **kwargs):
             return asyncio.get_event_loop().run_in_executor(None, f, *args, **kwargs)
-    
+    def from_search_space_to_list(self,*args,**kwargs):
+        yaml_search_conf_path = kwargs['yaml_search_conf_path']
+        optuna_search_parans ={
+            'len_vector',
+            'feature_mask',
+            'metric',
+            'threshold',
+            'similarity_metric',
+            'error_metric',
+        }
+    def _optimizer(self,*args, **kwargs):
+        metrics_with_smaller_is_better = ['manhattan', 'eculidean']
+        optimizer=kwargs['optimizer']
+        if optimizer == 'optuna':
+            X_valid = kwargs['X_valid']
+            y_valid = kwargs['y_valid']
+            search_space_intervals = kwargs['search_space_intervals']
+            similary_metrics = kwargs['metrics']
+            var_mask = kwargs['var_mask']
+            optimizer_engine = kwargs['optimizer_engine']
+        if optimizer=='auto_optona':
+
+            # Set the random seed
+            seed = 42
+            np.random.seed(seed)
+
+            # Get the number of rows in each array
+            num_rows = self.X_train.shape[0]
+
+            if isinstance(self.X_train, np.array):
+                # Generate random indices for selecting rows
+                random_indices = np.random.choice(num_rows, size=int(0.5*num_rows), replace=False)
+                # Select rows based on the random indices from self.X_train
+                X_valid = self.X_train[random_indices]
+            elif isinstance(self.X_train,pd.DataFrame):
+                X_valid,y_valid = self.X_train.sample(n=int(0.5*num_rows), random_state=seed)
+            else:
+                raise ValueError(f"this type of data {type(self.X_train)} is not supported for X_valid !!!")
+            # Select the same rows from self.y_train
+            y_valid = self.y_train[random_indices]
+            similary_metrics = ['manhattan','eculidean','cosine']
+            number_of_intervals = [3,30],
+            threshold = [0.1,10]
+            import optuna
+            from sklearn.metrics import f1_score
+
+            def objective(trial):
+                # Define selection parameter
+                similary_metrics = trial.suggest_categorical("similary_metrics", similary_metrics)
+                number_of_intervals = trial.suggest_integer("number_of_intervals", number_of_intervals)
+                threshold = trial.suggest_float("threshold", threshold)
+
+                # Conditional hyperparameter optimization based on selection parameter
+                if similary_metrics in metrics_with_smaller_is_better:
+                    smaller_is_better = True
+                else:
+                    smaller_is_better = False
+                params = {
+                    "metric": similary_metrics,
+                    "number_of_intervals": number_of_intervals,
+                    "threshol": threshold,
+                }
+
+                model = FLfastClassifier(**params).fit(X=X_valid,y=y_valid,X_valid=None,y_valid=None)
+                y_pred = 
+                
+
+                # Predict on the validation set
+                y_pred = model.predict(dval)
+                y_pred_labels = (y_pred >= 0.5).astype(int)
+
+                # Calculate accuracy score as the objective
+                score = accuracy_score(y_val, y_pred_labels)
+
+                return score
+
+            study = optuna.create_study(direction="maximize")
+            study.optimize(objective, n_trials=100)
+
+            best_params = study.best_params
+            best_value = study.best_value
+
+            print("Best parameters:", best_params)
+            print("Best value:", best_value)
+
+
+        pass
     def _fuzzify_info(self,*args, **kwargs):
         """ An internal function to get a  fuzzifying info as a dictinary """
 
@@ -85,11 +171,9 @@ class FLfastClassifier:
         index = 0
         n = len(data.T)
         for col in data.T:
-            print(col.dtype)
             min_col = col.min()
             max_col = col.max()
             if np.all(np.mod(col, 1) == 0) and len(np.unique(col)) <=5:
-                    print('col is int !!!')
                     ordered_list = sorted(col.tolist())
                     subtracted_list = [ordered_list[i] - ordered_list[i-1] for i in range(1, len(ordered_list))]
                     len_col = min(subtracted_list)/2.0
