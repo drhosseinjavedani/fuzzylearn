@@ -15,9 +15,9 @@ from sklearn.model_selection import train_test_split
 from fuzzylearn.util.read_data import read_data_from_gdrive_or_local
 
 data = read_data_from_gdrive_or_local('UKB_CAD')
-data = data[0:1000]
-print(data.columns)
-print(data.shape)
+# only 10000 rows of data
+data = data[0:10000]
+
 
 cols_to_drop =[
     'eid'
@@ -28,30 +28,20 @@ cols_to_drop =[
 
 
 data["label"] = data["DX_Coronary_artery_disease"].astype(int)
+data.drop(["DX_Coronary_artery_disease"],axis='columns',inplace=True)
 
 # # Train test split
 
 data.drop(cols_to_drop, errors='ignore', inplace=True, axis='columns')
-print(data.columns)
 
 
 X = data.loc[:, data.columns != "label"]
 y = data.loc[:, data.columns == "label"]
 
-
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.33, stratify=y["label"], random_state=42
 )
 
-
-print(X_train.head())
-print(X_test.head())
-
-print(X_train.columns)
-print(X_test.columns)
-
-print(y_train.columns)
-print(y_test.columns)
 
 int_cols = X_train.select_dtypes(include=["int"]).columns.tolist()
 float_cols = X_train.select_dtypes(include=["float"]).columns.tolist()
@@ -128,9 +118,21 @@ pipeline_selected_features =Pipeline([
 X_train = pipeline_selected_features.fit_transform(X_train,y_train)
 X_test = pipeline_selected_features.transform(X_test)
 
+int_cols = X_train.select_dtypes(include=["int"]).columns.tolist()
+float_cols = X_train.select_dtypes(include=["float"]).columns.tolist()
+cat_cols = X_train.select_dtypes(include=["object"]).columns.tolist()
+
+print('int_cols')
+print(int_cols)
+print('float_cols')
+print(float_cols)
+print('cat_cols')
+print(cat_cols)
+
+
 
 start_time = time.time()
-model = FLfastClassifier(number_of_intervals='freedman',threshold=0.7,metric = 'manhattan').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
+model = FLfastClassifier(number_of_intervals=10,threshold=0.7,metric = 'manhattan').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
 
 start_time = time.time()

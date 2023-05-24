@@ -21,6 +21,9 @@ class FLfastClassifier:
         self.smaller_better = True
         self.rhss=None
         self.lhss=None
+        self.features = None
+        self.y_for_color_code = None
+
     @property
     def number_of_intervals(self):
         return self._number_of_intervals
@@ -45,6 +48,22 @@ class FLfastClassifier:
     def threshold(self, value):
         self._threshold = value
 
+    @property   
+    def features(self):
+        return self._features
+
+    @features.setter
+    def features(self, value):
+        self._features = value
+
+    @property   
+    def y_for_color_code(self):
+        return self._y_for_color_code
+
+    @y_for_color_code.setter
+    def y_for_color_code(self, value):
+        self._y_for_color_code = value
+
     def background(f):
         """A wrapper for asyncio task make for loops faster"""
         def wrapped(*args, **kwargs):
@@ -66,22 +85,29 @@ class FLfastClassifier:
         index = 0
         n = len(data.T)
         for col in data.T:
+            print(col.dtype)
             min_col = col.min()
             max_col = col.max()
-            if isinstance(number_of_intervals,int):
-                len_col = int((max_col-min_col)/number_of_intervals)
-            if isinstance(number_of_intervals, list):
-                if all([isinstance(item, int) for item in number_of_intervals]):
-                    len_col = int((max_col-min_col)/number_of_intervals[index])
-            if number_of_intervals=='sturges':
-                len_col = int(math.log(n,2))+1
-            if number_of_intervals=='rice':
-                len_col = int(2*n**1/3)
-            if number_of_intervals=='freedman':
-                q3, q1 = np.percentile(data.T[:,index], [75 ,25])
-                iqr = q3 - q1
-                h = 2*iqr/(n**1/3)
-                len_col = int((max_col-min_col)/h)
+            if np.all(np.mod(col, 1) == 0):
+                    print('col is int !!!')
+                    ordered_list = sorted(col.tolist())
+                    subtracted_list = [ordered_list[i] - ordered_list[i-1] for i in range(1, len(ordered_list))]
+                    len_col = min(subtracted_list)
+            else:
+                if isinstance(number_of_intervals,int):
+                    len_col = ((max_col-min_col)/number_of_intervals)       
+                if isinstance(number_of_intervals, list):
+                    if all([isinstance(item, int) for item in number_of_intervals]):
+                        len_col = ((max_col-min_col)/number_of_intervals[index])
+                if number_of_intervals=='sturges':
+                    len_col = (math.log(n,2))+1
+                if number_of_intervals=='rice':
+                    len_col = (2*n**1/3)
+                if number_of_intervals=='freedman':
+                    q3, q1 = np.percentile(data.T[:,index], [75 ,25])
+                    iqr = q3 - q1
+                    h = 2*iqr/(n**1/3)
+                    len_col = ((max_col-min_col)/h)
             split_dict[index] = [min_col,max_col,len_col]
             index+=1
         return split_dict
@@ -91,6 +117,7 @@ class FLfastClassifier:
 
         columns = kwargs["columns"]
         arr = kwargs["arr"]
+        self.features = columns.to_list()
         df = pd.DataFrame(arr, columns = columns)
         return df
 
@@ -100,6 +127,7 @@ class FLfastClassifier:
 
         df = kwargs['data']
         columns = df.columns
+        self.features = columns.to_list()
         return df.to_numpy(),columns
 
     def _process_train_data(self,*args, **kwargs):
@@ -119,6 +147,7 @@ class FLfastClassifier:
             X_train=X_train.reset_index(drop=True)
         if y_train is not None and isinstance(y_train,pd.DataFrame):
             y_train=y_train.reset_index(drop=True)
+            self.y_for_color_code=y_train
         if X_valid is not None and isinstance(X_valid,pd.DataFrame):
             X_valid=X_valid.reset_index(drop=True)
         if y_valid is not None and isinstance(y_valid,pd.DataFrame):
@@ -234,27 +263,39 @@ class FLfastClassifier:
     
     def feature_improtance(self,*args,**kwargs):
         """Feature improtance"""
+        from collections import OrderedDict
         import matplotlib.pyplot as plt
+        plt.figure(figsize=(6,8))
+
         lhss=self.lhss
         # Get the number of columns in the array
         num_columns = lhss.shape[1]
 
         # Generate the x-axis values for the bars
         x_values = np.arange(num_columns)
+        x_values = self.features
+        # Example list of numbers to determine colors
+        colors = list(set(self.y_for_color_code.iloc[:,0].to_list()))
+        colors = [float(x) for x in colors]
 
-        # Create a bar plot for each row
-        for i in range(lhss.shape[0]):
-                    plt.bar(x_values, lhss[i, :], label=f'Row {i+1}')
+        # Create a color map
+        cmap = plt.cm.get_cmap('viridis')  # Choose a colormap, such as 'cool'
+        
         # Create lines connecting the bars
         for i in range(lhss.shape[0] - 1):
-            plt.plot(x_values, lhss[i, :], linestyle='-', color='black')
+            plt.plot(lhss[i, :],x_values, linestyle='-', color=cmap(colors[int(self.y_for_color_code.iloc[i,:].to_list()[0])]), label = str(int(self.y_for_color_code.iloc[i,:].to_list()[0])))
+        
+        plt.legend(self.y_for_color_code)
+
         # Set labels and a title for the plot
-        plt.xlabel('Column Index')
-        plt.ylabel('Values')
-        plt.title('Bar Plot of Rows')
+        plt.xlabel('Levels')
+        plt.ylabel('Features/Variables')
+        plt.title('Fuzzified Features Map')
+        handles, labels = plt.gca().get_legend_handles_labels()
+        by_label = OrderedDict(zip(labels, handles))
 
         # Display a legend for the rows
-        plt.legend()
+        plt.legend(by_label.values(), by_label.keys())
 
         # Show the plot
         plt.show()

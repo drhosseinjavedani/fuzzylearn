@@ -187,11 +187,12 @@ X_test = pipeline_selected_features.transform(X_test)
 
 
 start_time = time.time()
-model = FLfastClassifier(number_of_intervals='rice',threshold=0.7,metric = 'euclidean').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
+model = FLfastClassifier(number_of_intervals='sturges',threshold=0.7,metric = 'euclidean').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
 
 start_time = time.time()
 y_pred = model.predict(X=X_test)
+model.feature_improtance()
 print("--- %s seconds for prediction ---" % (time.time() - start_time))
 
 print("classification_report :")
