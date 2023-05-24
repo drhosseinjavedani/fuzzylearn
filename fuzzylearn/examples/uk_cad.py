@@ -16,7 +16,7 @@ from fuzzylearn.util.read_data import read_data_from_gdrive_or_local
 
 data = read_data_from_gdrive_or_local('UKB_CAD')
 # only 10000 rows of data
-data = data[0:10000]
+data = data.sample(n=10000, random_state=1)
 
 
 cols_to_drop =[

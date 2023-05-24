@@ -88,11 +88,11 @@ class FLfastClassifier:
             print(col.dtype)
             min_col = col.min()
             max_col = col.max()
-            if np.all(np.mod(col, 1) == 0):
+            if np.all(np.mod(col, 1) == 0) and len(np.unique(col)) <=5:
                     print('col is int !!!')
                     ordered_list = sorted(col.tolist())
                     subtracted_list = [ordered_list[i] - ordered_list[i-1] for i in range(1, len(ordered_list))]
-                    len_col = min(subtracted_list)
+                    len_col = min(subtracted_list)/2.0
             else:
                 if isinstance(number_of_intervals,int):
                     len_col = ((max_col-min_col)/number_of_intervals)       
