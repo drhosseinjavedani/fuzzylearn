@@ -72,7 +72,7 @@ X_test = pipeline.transform(X_test)
 
 
 start_time = time.time()
-model = FLfastClassifier(number_of_intervals=15,threshold=0.7,metric = 'euclidean').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
+model = FLfastClassifier(optimizer = "auto_optuna",number_of_intervals=15,threshold=0.7,metric = 'euclidean').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
 
 start_time = time.time()
@@ -132,7 +132,7 @@ print(cat_cols)
 
 
 start_time = time.time()
-model = FLfastClassifier(number_of_intervals=10,threshold=0.7,metric = 'manhattan').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
+model = FLfastClassifier(optimizer = "auto_optuna",number_of_intervals=10,threshold=0.7,metric = 'manhattan').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
 
 start_time = time.time()

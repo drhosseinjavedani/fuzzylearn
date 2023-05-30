@@ -7,7 +7,7 @@ import itertools
 import asyncio
 import time
 import math
-
+from sklearn.metrics import *
 class FLfastClassifier:
     """FuzzyLearning class"""
 
@@ -15,22 +15,46 @@ class FLfastClassifier:
         self.number_of_intervals = kwargs['number_of_intervals']
         self.metric=kwargs['metric']
         self.threshold=kwargs['threshold']
+        self.optimizer = kwargs['optimizer']
         self.trained = {}
         self.X_paired_weights=self.output_weights=None
         self.X_train_F = None
+        self.X_train = None
+        self.y_train = None
+        self.X_valid = None
+        self.y_valid = None
         self.smaller_better = True
         self.rhss=None
         self.lhss=None
         self.features = None
         self.y_for_color_code = None
-
+        self.metric_for_optimum = None
+        self.threshold_for_optimum = None
+        self.number_of_intervals_for_optimum = None
+        
     @property
-    def number_of_intervals(self):
-        return self._number_of_intervals
+    def number_of_intervals_for_optimum(self):
+        return self._number_of_intervals_for_optimum
 
-    @number_of_intervals.setter
-    def number_of_intervals(self, value):
-        self._number_of_intervals = value
+    @number_of_intervals_for_optimum.setter
+    def number_of_intervals_for_optimum(self, value):
+        self._number_of_intervals_for_optimum = value
+    
+    @property
+    def threshold_for_optimum(self):
+        return self._threshold_for_optimum
+
+    @threshold_for_optimum.setter
+    def threshold_for_optimum(self, value):
+        self._threshold_for_optimum = value
+    
+    @property
+    def metric_for_optimum(self):
+        return self._metric_for_optimum
+
+    @metric_for_optimum.setter
+    def metric_for_optimum(self, value):
+        self._metric_for_optimum = value
     
     @property
     def metric(self):
@@ -64,6 +88,46 @@ class FLfastClassifier:
     def y_for_color_code(self, value):
         self._y_for_color_code = value
 
+    @property   
+    def X_train(self):
+        return self._X_train
+
+    @X_train.setter
+    def X_train(self, value):
+        self._X_train = value
+
+    @property   
+    def y_train(self):
+        return self._y_train
+
+    @y_train.setter
+    def y_train(self, value):
+        self._y_train = value
+
+    @property   
+    def X_valid(self):
+        return self._X_valid
+
+    @X_valid.setter
+    def X_valid(self, value):
+        self._X_valid = value
+
+    @property   
+    def y_valid(self):
+        return self._y_valid
+
+    @y_valid.setter
+    def y_valid(self, value):
+        self._y_valid = value
+
+    @property   
+    def optimizer(self):
+        return self._optimizer
+
+    @optimizer.setter
+    def optimizer(self, value):
+        self._optimizer = value
+
     def background(f):
         """A wrapper for asyncio task make for loops faster"""
         def wrapped(*args, **kwargs):
@@ -78,17 +142,17 @@ class FLfastClassifier:
             'similarity_metric',
             'error_metric',
         }
-    def _optimizer(self,*args, **kwargs):
+    def _optimizer_func(self,*args, **kwargs):
         metrics_with_smaller_is_better = ['manhattan', 'eculidean']
-        optimizer=kwargs['optimizer']
+        optimizer=self.optimizer
         if optimizer == 'optuna':
-            X_valid = kwargs['X_valid']
-            y_valid = kwargs['y_valid']
+            self.X_valid = kwargs['X_valid']
+            self.y_valid = kwargs['y_valid']
             search_space_intervals = kwargs['search_space_intervals']
             similary_metrics = kwargs['metrics']
             var_mask = kwargs['var_mask']
             optimizer_engine = kwargs['optimizer_engine']
-        if optimizer=='auto_optona':
+        if optimizer=='auto_optuna':
 
             # Set the random seed
             seed = 42
@@ -97,55 +161,54 @@ class FLfastClassifier:
             # Get the number of rows in each array
             num_rows = self.X_train.shape[0]
 
-            if isinstance(self.X_train, np.array):
+            if isinstance(self.X_train, np.ndarray):
                 # Generate random indices for selecting rows
                 random_indices = np.random.choice(num_rows, size=int(0.5*num_rows), replace=False)
                 # Select rows based on the random indices from self.X_train
-                X_valid = self.X_train[random_indices]
+                self.X_valid = self.X_train[random_indices]
+                self.y_valid = self.y_train[random_indices]
+
             elif isinstance(self.X_train,pd.DataFrame):
-                X_valid,y_valid = self.X_train.sample(n=int(0.5*num_rows), random_state=seed)
+                self.X_valid = self.X_train.sample(n=int(0.5*num_rows), random_state=seed)
+                self.y_valid = self.y_train.sample(n=int(0.5*num_rows), random_state=seed)
             else:
                 raise ValueError(f"this type of data {type(self.X_train)} is not supported for X_valid !!!")
             # Select the same rows from self.y_train
-            y_valid = self.y_train[random_indices]
-            similary_metrics = ['manhattan','eculidean','cosine']
-            number_of_intervals = [3,30],
-            threshold = [0.1,10]
+            self.metric_for_optimum = ['euclidean']
+            self.number_of_intervals_for_optimum = [3,30]
+            self.threshold_for_optimum = [0.1,10.0]
             import optuna
             from sklearn.metrics import f1_score
 
             def objective(trial):
                 # Define selection parameter
-                similary_metrics = trial.suggest_categorical("similary_metrics", similary_metrics)
-                number_of_intervals = trial.suggest_integer("number_of_intervals", number_of_intervals)
-                threshold = trial.suggest_float("threshold", threshold)
+                self.metric_for_optimum = trial.suggest_categorical("metric_for_optimum", self.metric_for_optimum)
+                self.number_of_intervals_for_optimum = trial.suggest_int("number_of_intervals_for_optimum", self.number_of_intervals_for_optimum[0],self.number_of_intervals_for_optimum.pop())
+                self.threshold_for_optimum = trial.suggest_float("threshold_for_optimum", self.threshold_for_optimum[0],self.threshold_for_optimum.pop())
 
                 # Conditional hyperparameter optimization based on selection parameter
-                if similary_metrics in metrics_with_smaller_is_better:
-                    smaller_is_better = True
+                if self.metric_for_optimum in metrics_with_smaller_is_better:
+                    self.smaller_is_better = True
                 else:
-                    smaller_is_better = False
+                    self.smaller_is_better = False
                 params = {
-                    "metric": similary_metrics,
-                    "number_of_intervals": number_of_intervals,
-                    "threshol": threshold,
+                    "metric": self.metric_for_optimum,
+                    "number_of_intervals": self.number_of_intervals_for_optimum,
+                    "threshold": self.threshold_for_optimum,
+                    "optimizer": "stop_optuna",
                 }
 
-                model = FLfastClassifier(**params).fit(X=X_valid,y=y_valid,X_valid=None,y_valid=None)
-                y_pred = 
-                
-
-                # Predict on the validation set
-                y_pred = model.predict(dval)
-                y_pred_labels = (y_pred >= 0.5).astype(int)
+                model = FLfastClassifier(**params).fit(X=self.X_valid,y=self.y_valid,X_valid=None,y_valid=None)
+                y_pred = model.predict(X=self.X_valid)
+                y_pred_labels = y_pred#(y_pred >= 0.5).astype(int)
 
                 # Calculate accuracy score as the objective
-                score = accuracy_score(y_val, y_pred_labels)
+                score = f1_score(self.y_valid, y_pred_labels)
 
                 return score
 
             study = optuna.create_study(direction="maximize")
-            study.optimize(objective, n_trials=100)
+            study.optimize(objective, n_trials=10)
 
             best_params = study.best_params
             best_value = study.best_value
@@ -153,8 +216,8 @@ class FLfastClassifier:
             print("Best parameters:", best_params)
             print("Best value:", best_value)
 
+        return 
 
-        pass
     def _fuzzify_info(self,*args, **kwargs):
         """ An internal function to get a  fuzzifying info as a dictinary """
 
@@ -317,11 +380,18 @@ class FLfastClassifier:
         """ Fit function."""
 
         # arguments for the fit
-        X_valid = kwargs['X_valid']
-        y_valid = kwargs['y_valid']
-        X_train = kwargs['X']
-        y_train = kwargs['y']
-        X_train,y_train,X_valid,y_valid = self._process_train_data(X_train=X_train,y_train=y_train,X_valid=X_valid,y_valid=y_valid)
+        self.X_valid = kwargs['X_valid']
+        self.y_valid = kwargs['y_valid']
+        self.X_train = kwargs['X']
+        self.y_train = kwargs['y']
+        
+        
+        if self.optimizer=="auto_optuna":
+            best_params = self._optimizer_func(optimizer="auto_optuna")
+            print(best_params)        
+
+        
+        X_train,y_train,X_valid,y_valid = self._process_train_data(X_train=self.X_train,y_train=self.y_train,X_valid=self.X_valid,y_valid=self.y_valid)
         # fuzzifying X_train_new
         X_train_F = self._fuzzifying(X=X_train,number_of_intervals=self.number_of_intervals)
         self.X_train_F=X_train_F
