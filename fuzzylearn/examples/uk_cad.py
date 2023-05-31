@@ -13,7 +13,7 @@ from optuna.pruners import HyperbandPruner
 from zoish.feature_selectors.shap_selectors import ShapFeatureSelector
 from sklearn.model_selection import train_test_split
 from fuzzylearn.util.read_data import read_data_from_gdrive_or_local
-
+import ray
 data = read_data_from_gdrive_or_local('UKB_CAD')
 # only 10000 rows of data
 data = data.sample(n=10000, random_state=1)
@@ -72,11 +72,13 @@ X_test = pipeline.transform(X_test)
 
 
 start_time = time.time()
-model = FLfastClassifier(optimizer = "auto_optuna",number_of_intervals=15,threshold=0.7,metric = 'euclidean').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
+model = FLfastClassifier.remote(optimizer = "auto_optuna",number_of_intervals=15,threshold=0.7,metric = 'euclidean')
+model.fit.remote(X=X_train,y=y_train,X_valid=None,y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
 
 start_time = time.time()
-y_pred = model.predict(X=X_test)
+y_pred = model.predict.remote(X=X_test)
+y_pred = ray.get(y_pred)
 print("--- %s seconds for prediction ---" % (time.time() - start_time))
 
 print("classification_report :")
@@ -132,12 +134,15 @@ print(cat_cols)
 
 
 start_time = time.time()
-model = FLfastClassifier(optimizer = "auto_optuna",number_of_intervals=10,threshold=0.7,metric = 'manhattan').fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
+model = FLfastClassifier.remote(optimizer = "auto_optuna",number_of_intervals=10,threshold=0.7,metric = 'manhattan')
+model.fit.remote(X=X_train,y=y_train,X_valid=None,y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
 
 start_time = time.time()
-y_pred = model.predict(X=X_test)
-model.feature_improtance()
+y_pred = model.predict.remote(X=X_test)
+y_pred = ray.get(y_pred)
+
+model.feature_improtance.remote()
 print("--- %s seconds for prediction ---" % (time.time() - start_time))
 
 print("classification_report :")
@@ -147,4 +152,6 @@ print(confusion_matrix(y_test, y_pred))
 print("roc_auc_score : ")
 print(roc_auc_score(y_test, y_pred))
 print("f1_score : ")
+
+
 print(f1_score(y_test, y_pred))

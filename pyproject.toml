@@ -6,8 +6,9 @@ authors = ["drhosseinjavedani <h.javedani@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.8.5"
+python = "3.10.0"
 wheel = "^0.40.0"
+zoish = "^3.7.1"
 
 
 

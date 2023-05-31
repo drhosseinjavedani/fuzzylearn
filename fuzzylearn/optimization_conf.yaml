@@ -1,0 +1,16 @@
+
+metric_for_optimum:
+  - manhattan
+  - cosine
+  - euclidean
+  
+
+number_of_intervals_for_optimum:
+  - 3
+  - 30
+
+threshold_for_optimum:
+  - 0.1
+  - 12
+
+

@@ -11,7 +11,11 @@ from sklearn.metrics import *
 from fuzzylearn.util.read_data import read_yaml_file
 import optuna
 from sklearn.metrics import f1_score
+import yaml
+import ray
+from ray.util.multiprocessing import Pool
 
+@ray.remote
 class FLfastClassifier:
     """FuzzyLearning class"""
 
@@ -115,7 +119,6 @@ class FLfastClassifier:
     @X_valid.setter
     def X_valid(self, value):
         self._X_valid = value
-
     @property   
     def y_valid(self):
         return self._y_valid
@@ -147,15 +150,8 @@ class FLfastClassifier:
             'error_metric',
         }
     def _optimizer_func(self,*args, **kwargs):
-        metrics_with_smaller_is_better = ['manhattan', 'eculidean']
+        metrics_with_smaller_is_better = ['r2_score']
         optimizer=self.optimizer
-        if optimizer == 'optuna':
-            self.X_valid = kwargs['X_valid']
-            self.y_valid = kwargs['y_valid']
-            search_space_intervals = kwargs['search_space_intervals']
-            similary_metrics = kwargs['metrics']
-            var_mask = kwargs['var_mask']
-            optimizer_engine = kwargs['optimizer_engine']
         if optimizer=='auto_optuna':
 
             # Set the random seed
@@ -180,37 +176,31 @@ class FLfastClassifier:
             
             
             # Path to your YAML file
-            file_path = 'conf_optimization.yaml'
+            file_path = 'fuzzylearn/optimization_conf.yaml'
 
             # Read the YAML file
-            yaml_data = read_yaml_file(file_path)
+            with open(file_path, 'r') as file:
+                try:
+                    yaml_data = yaml.safe_load(file)
+                    print(yaml_data)
+                except yaml.YAMLError as e:
+                    print("Error loading YAML file:", e)  
 
-            # Check if the data is a list
-            if isinstance(yaml_data, list):
-                # Process the list as needed
-                for item in yaml_data:
-                    if "metric_for_optimum" in item.__name__:
-                        metric_for_optimum = item
-                    if "number_of_intervals_for_optimum" in item.__name__:
-                        number_of_intervals_for_optimum = item
-                    if "threshold_for_optimum" in item.__name__:
-                        threshold_for_optimum = item
-                     
+            metric_for_optimum = yaml_data['metric_for_optimum']                   
+            number_of_intervals_for_optimum = yaml_data['number_of_intervals_for_optimum']                   
+            threshold_for_optimum = yaml_data['threshold_for_optimum']                   
+            # Conditional hyperparameter optimization based on selection parameter
+            if self.metric_for_optimum in metrics_with_smaller_is_better:
+                self.smaller_is_better = True
             else:
-                print("The data in the YAML file is not a list.")
+                self.smaller_is_better = False
 
             def objective(trial):
                 # Define selection parameter
-                print(self.metric_for_optimum)
                 self.metric_for_optimum = trial.suggest_categorical("metric_for_optimum", metric_for_optimum)
-                self.number_of_intervals_for_optimum = trial.suggest_int("number_of_intervals_for_optimum", int(number_of_intervals_for_optimum[0]),int(number_of_intervals_for_optimum.pop()))
-                self.threshold_for_optimum = trial.suggest_float("threshold_for_optimum", int(threshold_for_optimum[0]),int(threshold_for_optimum.pop()))
+                self.number_of_intervals_for_optimum = trial.suggest_int("number_of_intervals_for_optimum", int(number_of_intervals_for_optimum[0]),int(number_of_intervals_for_optimum[len(number_of_intervals_for_optimum)-1]))
+                self.threshold_for_optimum = trial.suggest_float("threshold_for_optimum", float(threshold_for_optimum[0]),float(threshold_for_optimum[len(threshold_for_optimum)-1]))
 
-                # Conditional hyperparameter optimization based on selection parameter
-                if self.metric_for_optimum in metrics_with_smaller_is_better:
-                    self.smaller_is_better = True
-                else:
-                    self.smaller_is_better = False
                 params = {
                     "metric": self.metric_for_optimum,
                     "number_of_intervals": self.number_of_intervals_for_optimum,
@@ -218,17 +208,23 @@ class FLfastClassifier:
                     "optimizer": "stop_optuna",
                 }
 
-                model = FLfastClassifier(**params).fit(X=self.X_valid,y=self.y_valid,X_valid=None,y_valid=None)
-                y_pred = model.predict(X=self.X_valid)
+                model = FLfastClassifier.remote(**params)
+                model.fit.remote(X=self.X_valid,y=self.y_valid,X_valid=None,y_valid=None)
+                y_pred = model.predict.remote(X=self.X_valid)
                 y_pred_labels = y_pred#(y_pred >= 0.5).astype(int)
 
                 # Calculate accuracy score as the objective
-                score = f1_score(self.y_valid, y_pred_labels)
+                score = f1_score(self.y_valid, ray.get(y_pred_labels))
 
                 return score
-
+        if self.smaller_better:
+            # TODO solve this problem
             study = optuna.create_study(direction="maximize")
             study.optimize(objective, n_trials=10)
+        else:
+            study = optuna.create_study(direction="maximize")
+            study.optimize(objective, n_trials=10)
+
 
             best_params = study.best_params
             best_value = study.best_value
@@ -343,7 +339,7 @@ class FLfastClassifier:
                 X[:,index]=((X[:,index]-split_dict[index][0])/split_dict[index][2][index]).round(decimals=0).astype(int)
             index+=1
         return X
-
+    
     def _lhs_rhs_creator(self,*args, **kwargs):
         trained = {}
         X = kwargs['X']
@@ -393,9 +389,10 @@ class FLfastClassifier:
             y, y_cols = self._pd_to_np(data=y)
         
         lhss,rhss = self._lhs_rhs_creator(X=X,y=y,metric=metric,threshold=threshold)
+        
 
         return lhss,rhss
-
+    
     def fit(self,*args, **kwargs):
         """ Fit function."""
 
@@ -474,3 +471,4 @@ class FLfastClassifier:
         # Show the plot
         plt.show()
 
+ray.init()
