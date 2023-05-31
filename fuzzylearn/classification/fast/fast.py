@@ -8,6 +8,10 @@ import asyncio
 import time
 import math
 from sklearn.metrics import *
+from fuzzylearn.util.read_data import read_yaml_file
+import optuna
+from sklearn.metrics import f1_score
+
 class FLfastClassifier:
     """FuzzyLearning class"""
 
@@ -173,18 +177,34 @@ class FLfastClassifier:
                 self.y_valid = self.y_train.sample(n=int(0.5*num_rows), random_state=seed)
             else:
                 raise ValueError(f"this type of data {type(self.X_train)} is not supported for X_valid !!!")
-            # Select the same rows from self.y_train
-            self.metric_for_optimum = ['euclidean']
-            self.number_of_intervals_for_optimum = [3,30]
-            self.threshold_for_optimum = [0.1,10.0]
-            import optuna
-            from sklearn.metrics import f1_score
+            
+            
+            # Path to your YAML file
+            file_path = 'conf_optimization.yaml'
+
+            # Read the YAML file
+            yaml_data = read_yaml_file(file_path)
+
+            # Check if the data is a list
+            if isinstance(yaml_data, list):
+                # Process the list as needed
+                for item in yaml_data:
+                    if "metric_for_optimum" in item.__name__:
+                        metric_for_optimum = item
+                    if "number_of_intervals_for_optimum" in item.__name__:
+                        number_of_intervals_for_optimum = item
+                    if "threshold_for_optimum" in item.__name__:
+                        threshold_for_optimum = item
+                     
+            else:
+                print("The data in the YAML file is not a list.")
 
             def objective(trial):
                 # Define selection parameter
-                self.metric_for_optimum = trial.suggest_categorical("metric_for_optimum", self.metric_for_optimum)
-                self.number_of_intervals_for_optimum = trial.suggest_int("number_of_intervals_for_optimum", self.number_of_intervals_for_optimum[0],self.number_of_intervals_for_optimum.pop())
-                self.threshold_for_optimum = trial.suggest_float("threshold_for_optimum", self.threshold_for_optimum[0],self.threshold_for_optimum.pop())
+                print(self.metric_for_optimum)
+                self.metric_for_optimum = trial.suggest_categorical("metric_for_optimum", metric_for_optimum)
+                self.number_of_intervals_for_optimum = trial.suggest_int("number_of_intervals_for_optimum", int(number_of_intervals_for_optimum[0]),int(number_of_intervals_for_optimum.pop()))
+                self.threshold_for_optimum = trial.suggest_float("threshold_for_optimum", int(threshold_for_optimum[0]),int(threshold_for_optimum.pop()))
 
                 # Conditional hyperparameter optimization based on selection parameter
                 if self.metric_for_optimum in metrics_with_smaller_is_better:
