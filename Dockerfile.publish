@@ -1,0 +1,31 @@
+
+FROM python:3.10
+
+RUN useradd -ms /bin/sh admin
+COPY --chown=admin:admin . /lohrasb
+ 
+# Keeps Python from generating .pyc files in the container
+ENV PYTHONDONTWRITEBYTECODE 1
+# Turns off buffering for easier container logging
+ENV PYTHONUNBUFFERED 1
+ENV username = $username
+ENV password = $password
+ENV gitusername = $gitusername
+ENV gitpassword = $gitpassword
+ENV POETRY_VERSION=1.3.2
+
+# Install and setup poetry
+WORKDIR /lohrasb
+RUN pip3 install --upgrade pip
+RUN pip install "poetry==$POETRY_VERSION"
+RUN poetry config virtualenvs.create false
+RUN poetry cache clear --all pypi 
+RUN poetry install  --no-interaction --no-ansi
+
+USER admin
+RUN poetry build 
+RUN chmod +x ./entrypoint.sh
+
+
+# run entrypoint.sh
+CMD ["bash", "./entrypoint.sh"]
