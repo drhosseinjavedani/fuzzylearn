@@ -11,7 +11,7 @@ import optuna
 from sklearn.metrics import roc_auc_score
 import yaml
 
-class FLClassifier:
+class FLOptimumClassifier:
     """FuzzyLearning class"""
 
     def __init__(self,*args,**kwargs):
@@ -157,7 +157,7 @@ class FLClassifier:
         seed = 42
         np.random.seed(seed)
 
-            # Get the number of rows in each array
+        # Get the number of rows in each array
         if self.X_valid is None or self.y_valid is None:
 
             num_rows = self.X_train.shape[0]
@@ -176,10 +176,12 @@ class FLClassifier:
                     problem_type = 'multi-class'
 
             elif isinstance(self.X_train,pd.DataFrame):
-                self.X_valid = self.X_train.sample(n=int(0.5*num_rows), random_state=seed)
-                self.y_valid = self.y_train.sample(n=int(0.5*num_rows), random_state=seed)
-                self.X_valid_test = self.X_train.sample(n=int(0.5*num_rows), random_state=seed)
-                self.y_valid = self.y_train.sample(n=int(0.5*num_rows), random_state=seed)
+                # self.X_valid = self.X_train.sample(n=int(0.5*num_rows), random_state=seed)
+                # self.y_valid = self.y_train.sample(n=int(0.5*num_rows), random_state=seed)
+                # self.X_valid_test = self.X_train.sample(n=int(0.5*num_rows), random_state=seed)
+                # self.y_valid = self.y_train.sample(n=int(0.5*num_rows), random_state=seed)
+                print(self.X_train.shape)
+                print(self.y_train.shape)
                 self.X_valid,X_valid_test,self.y_valid,y_valid_test = train_test_split(self.X_train,self.y_train,test_size=.5) 
 
 
@@ -221,10 +223,6 @@ class FLClassifier:
                 yaml_data = yaml.safe_load(file)
             except yaml.YAMLError as e:
                 print("Error loading YAML file:", e)  
-
-        metric_for_optimum = yaml_data['metric_for_optimum']                   
-        number_of_intervals_for_optimum = yaml_data['number_of_intervals_for_optimum']                   
-        threshold_for_optimum = yaml_data['threshold_for_optimum']                   
         metrics_for_classification=yaml_data['metrics_for_classification']
         metrics_with_larger_is_better=yaml_data['metrics_with_larger_is_better']
         metrics_for_classification_multi=yaml_data['metrics_for_classification_multi']
@@ -262,19 +260,20 @@ class FLClassifier:
             n_trials=self.n_trials
 
         def objective(trial):
+
             # Define selection parameter
-            self.metric_for_optimum = trial.suggest_categorical("metric_for_optimum", metric_for_optimum)
-            self.number_of_intervals_for_optimum = trial.suggest_int("number_of_intervals_for_optimum", int(number_of_intervals_for_optimum[0]),int(number_of_intervals_for_optimum[len(number_of_intervals_for_optimum)-1]))
-            self.threshold_for_optimum = trial.suggest_float("threshold_for_optimum", float(threshold_for_optimum[0]),float(threshold_for_optimum[len(threshold_for_optimum)-1]))
+            self.metric_for_optimum = trial.suggest_categorical("metric_for_optimum", self.metric_for_optimum)
+            self.number_of_intervals_for_optimum = trial.suggest_int("number_of_intervals_for_optimum", int(self.number_of_intervals_for_optimum[0]),int(self.number_of_intervals_for_optimum[len(number_of_intervals_for_optimum)-1]))
+            self.threshold_for_optimum = trial.suggest_float("threshold_for_optimum", float(self.threshold_for_optimum[0]),float(self.threshold_for_optimum[len(self.threshold_for_optimum)-1]))
 
             params = {
-                "metric": self.metric_for_optimum,
-                "number_of_intervals": self.number_of_intervals_for_optimum,
-                "threshold": self.threshold_for_optimum,
-                "optimizer": "stop_optuna",
+                "metric": metric_for_optimum,
+                "number_of_intervals": number_of_intervals_for_optimum,
+                "threshold": threshold_for_optimum,
+                "optimizer": "auto_optuna",
             }
 
-            model = FLClassifier(**params)
+            model = FLOptimumClassifier(**params)
             model.fit(X=self.X_valid,y=self.y_valid,X_valid=None,y_valid=None)
             y_pred = model.predict(X=X_valid_test)
             y_true = y_valid_test
@@ -308,26 +307,49 @@ class FLClassifier:
         for col in data:
             min_col = col.min()
             max_col = col.max()
-            if np.all(np.mod(col, 1) == 0) and len(np.unique(col)) <=5:
+            if len(np.unique(col)) <=5:
                     ordered_list = sorted(col.tolist())
                     subtracted_list = [ordered_list[i] - ordered_list[i-1] for i in range(1, len(ordered_list))]
-                    len_col = min(subtracted_list)/2.0
+                    if abs(min(subtracted_list)) > 0:
+                        len_col = abs(min(subtracted_list)/2.0)
+                    elif abs(max(subtracted_list) - min(subtracted_list)) > 0:
+                        len_col = abs((max(subtracted_list)-min(subtracted_list))/2)
+                    else:
+                        raise ValueError(f'All value zeros for {col} is not accepted!') 
+
             else:
                 if isinstance(number_of_intervals,int):
-                    len_col = ((max_col-min_col)/number_of_intervals)       
+                    len_col = abs((max_col-min_col)/number_of_intervals)       
                 if isinstance(number_of_intervals, list):
                     if all([isinstance(item, int) for item in number_of_intervals]):
-                        len_col = ((max_col-min_col)/number_of_intervals[index])
+                        len_col = abs((max_col-min_col)/number_of_intervals[index])
                 if number_of_intervals=='sturges':
-                    len_col = (math.log(n,2))+1
+                    len_col = abs(math.log(n,2))+1
                 if number_of_intervals=='rice':
-                    len_col = (2*n**1/3)
+                    len_col = abs(2*n**1/3)
                 if number_of_intervals=='freedman':
                     q3, q1 = np.percentile(data.T[:,index], [75 ,25])
                     iqr = q3 - q1
                     h = 2*iqr/(n**1/3)
-                    len_col = ((max_col-min_col)/h)
-            split_dict[index] = [min_col,max_col,len_col]
+                    len_col = abs((max_col-min_col)/h)
+            try:
+                split_dict[index] = [min_col,max_col,len_col]
+            except:
+                print('number_of_intervals',number_of_intervals)
+                print('max_col',max_col)
+                print('min_col',min_col)
+                print('abs((max_col-min_col)/number_of_intervals',abs((max_col-min_col)/number_of_intervals)) 
+                print(len(np.unique(col)))
+                ordered_list = sorted(col.tolist())
+                subtracted_list = [ordered_list[i] - ordered_list[i-1] for i in range(1, len(ordered_list))]
+                print('abs(min(subtracted_list))',abs(min(subtracted_list)))
+                print('abs(max(subtracted_list) - min(subtracted_list))',abs(max(subtracted_list) - min(subtracted_list)))
+                print('min_col', min_col)
+                print('max_col',max_col)
+                print('index', index)
+                print('col',col) 
+                print('len_col', len_col)
+               
             index+=1
         return split_dict
 
@@ -470,8 +492,10 @@ class FLClassifier:
         
         if self.optimizer=="auto_optuna":
             best_params = self._optimizer_func(optimizer="auto_optuna")
+            self.number_of_intervals=best_params['number_of_intervals']
+            self.metric=best_params['metric']
+            self.threshold=best_params['threshold']
 
-        
         X_train,y_train,X_valid,y_valid = self._process_train_data(X_train=self.X_train,y_train=self.y_train,X_valid=self.X_valid,y_valid=self.y_valid)
         # fuzzifying X_train_new
         X_train_F = self._fuzzifying(X=X_train,number_of_intervals=self.number_of_intervals)

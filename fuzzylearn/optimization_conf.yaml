@@ -3,8 +3,8 @@ metric_for_optimum:
   - manhattan
   - cosine
 number_of_intervals_for_optimum:
-  - 3
-  - 30
+  - 10
+  - 13
 threshold_for_optimum:
   - 0.1
   - 12.0
