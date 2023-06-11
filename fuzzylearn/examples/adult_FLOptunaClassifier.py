@@ -1,4 +1,4 @@
-from fuzzylearn.classification.fast.optimum import FLOptimumClassifier 
+from fuzzylearn.classification.fast.optimum import FLOptunaClassifier 
 from sklearn.metrics import classification_report,confusion_matrix,f1_score,roc_auc_score
 from feature_engine.imputation import CategoricalImputer, MeanMedianImputer
 from category_encoders import OrdinalEncoder
@@ -101,10 +101,9 @@ X_test = pipeline.transform(X_test)
 
 
 start_time = time.time()
-model = FLOptimumClassifier(optimizer = "auto_optuna",number_of_intervals=14,threshold=0.7,metric = 'euclidean')
+model = FLOptunaClassifier(optimizer = "optuna",metrics_list=['cosine','manhattan'],number_of_intervals_range=[5,14],threshold_range=[0.1,12.0], error_measurement_metric= 'f1_score(y_true, y_pred, average="weighted")',n_trials=100)
 model.fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
-
 start_time = time.time()
 y_pred = model.predict(X=X_test)
 print("--- %s seconds for prediction ---" % (time.time() - start_time))

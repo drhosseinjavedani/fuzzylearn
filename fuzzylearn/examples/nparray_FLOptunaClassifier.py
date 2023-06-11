@@ -1,4 +1,4 @@
-from fuzzylearn.classification.fast.optimum import FLOptimumClassifier 
+from fuzzylearn.classification.fast.optimum import FLOptunaClassifier 
 from sklearn.metrics import classification_report,confusion_matrix,f1_score,roc_auc_score
 import time
 from sklearn.model_selection import train_test_split
@@ -29,11 +29,8 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.5, random_state=42
 )
 
-
-
-
 start_time = time.time()
-model = FLOptimumClassifier(optimizer = "auto_optuna",number_of_intervals=15,threshold=0.7,metric = 'euclidean')
+model = FLOptunaClassifier(optimizer = "optuna",metrics_list=['cosine','manhattan'],number_of_intervals_range=[5,14],threshold_range=[0.1,12.0], error_measurement_metric= 'f1_score(y_true, y_pred, average="weighted")')
 model.fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
 
