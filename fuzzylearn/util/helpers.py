@@ -2,7 +2,7 @@ import itertools
 import math
 import numpy as np
 import pandas as pd
-from statistics import mode
+from statistics import mode, mean
 from sklearn.metrics.pairwise import pairwise_distances
 
 def fuzzify_info(*args, **kwargs):
@@ -91,10 +91,12 @@ def process_train_data(*args, **kwargs):
         y_valid=y_valid.reset_index(drop=True)
 
     return X_train,y_train,X_valid,y_valid
-
+# TODO check all
 def fuzzifying(*args, **kwargs):
     """ An internal function to get a pandas dataframe and return fuzzifying of its variables """
-   
+    
+    fuzzy_type = kwargs['fuzzy_type']
+    fuzzy_cut = kwargs['fuzzy_cut'] 
     X=kwargs['X']
     if isinstance(X,pd.DataFrame):
         X,columns=pd_to_np(data=X)
@@ -105,47 +107,47 @@ def fuzzifying(*args, **kwargs):
     
     zero_array = np.zeros_like(X)
     XX=np.hstack((zero_array, zero_array))
-    fuzzy_type = kwargs['fuzzy_type']
-    
+    X_copy = np.copy(X)
     if fuzzy_type=='simple':
         number_of_intervals=kwargs['number_of_intervals']
         split_dict = fuzzify_info(data = X, number_of_intervals=number_of_intervals)
         # row_i iterate in rows of X_transpose 
         for row_i in range(X.T.shape[0]):
-            if split_dict[row_i][2]!=0 and not isinstance(split_dict[row_i][2],list):
-                X[:,row_i]=((X[:,row_i]-split_dict[row_i][0])/split_dict[row_i][2]).round(decimals=0).astype(int)
-            if isinstance(split_dict[row_i][2],list):
-                X[:,row_i]=((X[:,row_i]-split_dict[row_i][0])/split_dict[row_i][2][row_i]).round(decimals=0).astype(int)
-        print(X.T)
-        print(X.T.shape)
-        print(X.shape)
-        return X       
+            if split_dict[row_i][2]!=0: 
+                X_copy[:,row_i]=((X[:,row_i]-split_dict[row_i][0])/split_dict[row_i][2]).round(decimals=0).astype(int)
+        return X_copy       
+    # TODO has problem 
     if fuzzy_type=='deep':
         number_of_intervals=kwargs['number_of_intervals']
         split_dict = fuzzify_info(data = X, number_of_intervals=number_of_intervals)
-        print(XX.T)
-        print(XX.T.shape)
         # row_i iterate in rows of X_transpose 
         col_j=0
         for row_i in range(X.shape[0]):
             for col_j in range(X.shape[1]):
-                if split_dict[col_j][2]!=0 and not isinstance(split_dict[col_j][2],list):
+                if split_dict[col_j][2]!=0: 
                     if np.modf((X[row_i,col_j]-split_dict[col_j][0])/split_dict[col_j][2])[0]>=0.5:
                         XX[row_i,2*col_j]=((X[row_i,col_j]-split_dict[col_j][0])/split_dict[col_j][2]).round(decimals=0).astype(int)
                         XX[row_i,2*col_j+1]=((X[row_i,col_j]-split_dict[col_j][0])/split_dict[col_j][2])+split_dict[col_j][2]/2
-                    else:
-                        XX[row_i,2*col_j]=((X[row_i,col_j]-split_dict[col_j][0])/split_dict[col_j][2]).round(decimals=0).astype(int)
-                        XX[row_i,2*col_j+1]=((X[row_i,col_j]-split_dict[col_j][0])/split_dict[col_j][2])-split_dict[col_j][2]/2
-                
-                # if isinstance(split_dict[index][2],list):
-                #     if np.modf((X[:,index]-split_dict[index][0])/split_dict[index][2])>=0.5:
-                #         XX[:,index_j]=((X[:,index]-split_dict[index][0])/split_dict[index][2][index]).round(decimals=0).astype(int)
-                #         XX[:,index_j+1]=((X[:,index]-split_dict[index][0])/split_dict[index][2])+split_dict[index][2]/2
-                #     else:
-                #         XX[:,index_j]=((X[:,index]-split_dict[index][0])/split_dict[index][2][index]).round(decimals=0).astype(int)
-                #         XX[:,index_j+1]=((X[:,index]-split_dict[index][0])/split_dict[index][2])-split_dict[index][2]/2
-    print(XX)
-    return XX
+    X_copy = np.copy(X)
+    if fuzzy_type=='triangular':
+        number_of_intervals=kwargs['number_of_intervals']
+        split_dict = fuzzify_info(data = X_copy, number_of_intervals=number_of_intervals)
+        # row_i iterate in rows of X_transpose 
+        col_j=0
+        for row_i in range(X.shape[0]):
+            for col_j in range(X.shape[1]):
+                if split_dict[col_j][2]!=0:
+                    a =((X[row_i,col_j]-split_dict[col_j][0])/split_dict[col_j][2]).round(decimals=0).astype(int)
+                    b = a+1
+                    membership_coef=(((X[row_i,col_j]-split_dict[col_j][0])/split_dict[col_j][2])-a)/(b-a)
+                    if membership_coef>=fuzzy_cut and membership_coef<=1-fuzzy_cut:
+                        X_copy[row_i,col_j]=a
+                    if membership_coef<fuzzy_cut :
+                        X_copy[row_i,col_j]=(a+(a-1))/2
+                    if membership_coef>1-fuzzy_cut :
+                        X_copy[row_i,col_j]=(a+(a+1))/2
+
+        return X_copy 
 
 def lhs_rhs_creator(*args, **kwargs):
     trained = {}
@@ -182,6 +184,46 @@ def lhs_rhs_creator(*args, **kwargs):
         except:
             # TODO check this line for np arrays
             rhss[i_index] = mode(rhs)
+        i_index+=1
+
+    return lhss,rhss
+
+
+def lhs_rhs_creator_regression(*args, **kwargs):
+    trained = {}
+    X = kwargs['X']
+    y = kwargs['y']
+    X_train_F=kwargs['X_train_F']
+    smaller_better=kwargs['smaller_better']
+    metric = kwargs['metric']
+    threshold = kwargs['threshold']
+
+    X_paired_weights = pairwise_distances(X, X,metric=metric)
+    if smaller_better:
+        X_paired_weights[X_paired_weights>threshold] = np.inf
+    else:
+        X_paired_weights[X_paired_weights<threshold] = np.inf
+    
+    i_index = 0
+    lhss = np.empty(shape=X.shape)
+    rhss= np.empty(shape=y.shape)
+    for row in X_paired_weights:
+        lhs = []
+        rhs =[]
+        j_index=0
+        for member in row:
+            if member !=np.inf:
+                lhs.append(X_train_F[j_index,:])
+                rhs.append(y[j_index])
+            j_index+=1
+        temp = np.mean(lhs, 0).tolist()
+        lhss[i_index] = temp
+        try :    
+            rhs = list(itertools.chain(*rhs))
+            rhss[i_index] = mean(rhs)
+        except:
+            # TODO check this line for np arrays
+            rhss[i_index] = mean(rhs)
         i_index+=1
 
     return lhss,rhss

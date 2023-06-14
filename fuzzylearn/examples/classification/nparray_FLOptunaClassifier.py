@@ -30,7 +30,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 start_time = time.time()
-model = FLOptunaClassifier(optimizer = "optuna",metrics_list=['cosine','manhattan'],number_of_intervals_range=[5,14],threshold_range=[0.1,12.0], error_measurement_metric= 'f1_score(y_true, y_pred, average="weighted")')
+model = FLOptunaClassifier(optimizer = "optuna",fuzzy_type_list=['simple','triangular'],fuzzy_cut_range=[0.05,0.45],metrics_list=['cosine','manhattan'],number_of_intervals_range=[5,14],threshold_range=[0.1,12.0], error_measurement_metric= 'f1_score(y_true, y_pred, average="weighted")')
 model.fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
 

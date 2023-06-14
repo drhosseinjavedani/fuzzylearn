@@ -14,6 +14,7 @@ class FLClassifier:
         self.number_of_intervals = kwargs['number_of_intervals']
         self.metric=kwargs['metric']
         self.threshold=kwargs['threshold']
+        self.fuzzy_type = kwargs['fuzzy_type']
         self.trained = {}
         self.X_paired_weights=self.output_weights=None
         self.X_train_F = None
@@ -33,6 +34,10 @@ class FLClassifier:
             self.n_trials = kwargs['n_trials']
         except:
             self.n_trials = None
+        try:        
+            self.fuzzy_cut = kwargs['fuzzy_cut']
+        except:
+            self.fuzzy_cut = None
     def __str__(self):
         return f"number_of_intervals :{self.number_of_intervals} \n metric : {self.metric} \n threshold: {self.threshold} \n "
 
@@ -140,6 +145,24 @@ class FLClassifier:
         self._n_trials= value
    
 
+    @property   
+    def fuzzy_type(self):
+        return self._fuzzy_type
+
+    @fuzzy_type.setter
+    def fuzzy_type(self, value):
+        self._fuzzy_type= value
+   
+
+    @property   
+    def fuzzy_cut(self):
+        return self._fuzzy_cut
+
+    @fuzzy_cut.setter
+    def fuzzy_cut(self, value):
+        self._fuzzy_cut= value
+   
+
     def fit(self,*args, **kwargs):
         """ Fit function."""
 
@@ -152,7 +175,7 @@ class FLClassifier:
         
         X_train,y_train,X_valid,y_valid = process_train_data(X_train=self.X_train,y_train=self.y_train,X_valid=self.X_valid,y_valid=self.y_valid)
         # fuzzifying X_train_new
-        X_train_F = fuzzifying(fuzzy_type = 'simple',X=X_train,number_of_intervals=self.number_of_intervals)
+        X_train_F = fuzzifying(fuzzy_type = self.fuzzy_type,fuzzy_cut=self.fuzzy_cut,X=X_train,number_of_intervals=self.number_of_intervals)
         self.X_train_F=X_train_F
         # training and return rhs and lhs
         self.lhss,self.rhss = trained_model_for_X_y(smaller_better=self.smaller_better,X_train_F=self.X_train_F,X=X_train_F,y=y_train,metric=self.metric,threshold=self.threshold)
@@ -162,7 +185,7 @@ class FLClassifier:
     def predict(self,*args, **kwargs):
         """Predict function"""
         X_test = kwargs['X']
-        X_test_F = fuzzifying(fuzzy_type = 'simple',X=X_test,number_of_intervals=self.number_of_intervals)
+        X_test_F = fuzzifying(fuzzy_type = self.fuzzy_type,fuzzy_cut=self.fuzzy_cut,X=X_test,number_of_intervals=self.number_of_intervals)
         predictions =[]
         y_paired_weights = pairwise_distances(X_test_F, self.lhss,metric=self.metric)
         index = 0

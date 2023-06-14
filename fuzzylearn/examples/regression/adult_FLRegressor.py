@@ -30,7 +30,7 @@ col_names = [
 # read data
 data = pd.read_csv(urldata, header=None, names=col_names, sep=",")
 # use sample of 1000 rows of data only
-data = data.sample(2000)
+data = data.sample(20000)
 data.head()
 
 data.loc[data["label"] == "<=50K", "label"] = 0
@@ -82,7 +82,7 @@ X_test = pipeline.transform(X_test)
 
 
 start_time = time.time()
-model = FLClassifier(number_of_intervals=15,threshold=0.7,metric = 'euclidean')
+model = FLClassifier(number_of_intervals=5,fuzzy_type="triangular",fuzzy_cut=0.3,threshold=0.7,metric = 'euclidean')
 model.fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
 

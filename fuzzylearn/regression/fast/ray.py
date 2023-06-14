@@ -1,16 +1,14 @@
 from sklearn.model_selection import train_test_split
-from fuzzylearn.interfaces.interfaces import IFLRayClassifier
 from sklearn.metrics.pairwise import pairwise_distances
 from statistics import mode
 from sklearn.metrics import *
 from fuzzylearn.util.read_data import read_yaml_file
-from sklearn.metrics import roc_auc_score
 import ray
 from fuzzylearn.util.helpers import fuzzifying,process_train_data,trained_model_for_X_y
-from fuzzylearn.classification.fast.fast import FLClassifier
+from fuzzylearn.regression.fast.fast import FLRegressor
 ray.init()
 
-class FLRayClassifier:
+class FLRayRegressor:
     """FuzzyLearning class"""
 
     def __init__(self,*args,**kwargs):
@@ -26,7 +24,7 @@ class FLRayClassifier:
             self.fuzzy_cut = kwargs['fuzzy_cut']
         except:
             self.fuzzy_cut = None
-        self.iflrayclaccifier = IFLRayClassifier.remote(
+        self.iflrayregressor = IFLRayRegressor.remote(
             number_of_intervals =self.number_of_intervals,
             metric=self.metric,
             threshold=self.threshold,
@@ -39,12 +37,12 @@ class FLRayClassifier:
         return f"number_of_intervals :{self.number_of_intervals} \n metric : {self.metric} \n threshold: {self.threshold} \n "
 
     @property
-    def iflrayclaccifier(self):
-        return self._iflrayclaccifier
+    def iflrayregressor(self):
+        return self._iflrayregressor
 
-    @iflrayclaccifier.setter
-    def iflrayclaccifier(self, value):
-        self._iflrayclaccifier= value
+    @iflrayregressor.setter
+    def iflrayregressor(self, value):
+        self._iflrayregressor= value
     @property
     def metric(self):
         return self._metric
@@ -99,9 +97,9 @@ class FLRayClassifier:
     def fit(self,*args, **kwargs):
         """ Fit function."""
         
-        return ray.get(self.iflrayclaccifier.fit.remote(*args,**kwargs))
+        return ray.get(self.iflrayregressor.fit.remote(*args,**kwargs))
     
     def predict(self,*args, **kwargs):
         """Predict function"""
-        return ray.get(self.iflrayclaccifier.predict.remote(*args,**kwargs))
+        return ray.get(self.iflrayregressor.predict.remote(*args,**kwargs))
 

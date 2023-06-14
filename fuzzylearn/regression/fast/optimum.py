@@ -7,10 +7,10 @@ from fuzzylearn.util.read_data import read_yaml_file
 import optuna
 from sklearn.metrics import * 
 import yaml
-from fuzzylearn.classification.fast.fast import FLClassifier
-from fuzzylearn.classification.fast.ray import FLRayClassifier
+from fuzzylearn.regression.fast.fast import FLRegressor 
+from fuzzylearn.regression.fast.ray import FLRayRegressor 
 
-class FLAutoOptunaClassifier:
+class FLAutoOptunaRegressor:
     """FuzzyLearning class"""
 
     def __init__(self,*args,**kwargs):
@@ -109,26 +109,12 @@ class FLAutoOptunaClassifier:
         # Get the number of rows in each array
         if self.X_valid is None or self.y_valid is None :
 
-            num_rows = self.X_train.shape[0]
 
             if isinstance(self.X_train, np.ndarray):
                 self.X_valid,X_valid_test,self.y_valid,y_valid_test = train_test_split(self.X_train,self.y_train,test_size=.5) 
-                num_unique = len(np.unique(self.y_valid))<=2
-                if len(np.unique(self.y_valid))<=2:
-                    problem_type = 'binery'
-                else:
-                    problem_type = 'multi-class'
 
-            elif isinstance(self.X_train,pd.DataFrame):
+            if isinstance(self.X_train,pd.DataFrame):
                 self.X_valid,X_valid_test,self.y_valid,y_valid_test = train_test_split(self.X_train,self.y_train,test_size=.5) 
-                num_unique = len(self.y_valid.nunique())<=2
-                if len(self.y_valid.nunique())<=2:
-                    problem_type = 'binery'
-                else:
-                    problem_type = 'multi-class'
-
-            else:
-                raise ValueError(f"this type of data {type(self.X_train)} is not supported for X_valid !!!")
     
         # Path to your YAML file
         file_path = 'fuzzylearn/optimization_conf.yaml'
@@ -140,27 +126,15 @@ class FLAutoOptunaClassifier:
             except yaml.YAMLError as e:
                 print("Error loading YAML file:", e)  
         if self.optimizer=='auto_optuna' or self.optimizer=='auto_optuna_ray':                
-            if problem_type =='binery':
-                for mtr in yaml_data['metrics_for_classification']:
-                    str1 = set(self.error_measurement_metric.lower())  # Convert characters to lowercase and create a set
-                    str2 = set(mtr.lower())
-                    common_characters = str1.intersection(str2)
-                    if len(common_characters) >= 0.9 * len(str1):
-                        metrics_for_classification = mtr
-                        break
-            if metrics_for_classification is None:
-                raise ValueError(f'{self.error_measurement_metric} is not acceptable! use something like f1_score(y_true, y_pred, average="weighted")')
-        if problem_type =='multi-class':
-            if problem_type =='binery':
-                for mtr in yaml_data['metrics_for_classification_multi']:
-                    str1 = set(self.error_measurement_metric.lower())  # Convert characters to lowercase and create a set
-                    str2 = set(mtr.lower())
-                    common_characters = str1.intersection(str2)
-                    if len(common_characters) >= 0.9 * len(str1):
-                        metrics_for_classification = mtr
-                        break
-            if metrics_for_classification is None:
-                raise ValueError(f'{self.error_measurement_metric} is not acceptable! use something like f1_score(y_true, y_pred, average="weighted")')
+            for mtr in yaml_data['metrics_for_regression']:
+                str1 = set(self.error_measurement_metric.lower())  # Convert characters to lowercase and create a set
+                str2 = set(mtr.lower())
+                common_characters = str1.intersection(str2)
+                if len(common_characters) >= 0.9 * len(str1):
+                    metrics_for_regression = mtr
+                    break
+            if metrics_for_regression is None:
+                raise ValueError(f'{self.error_measurement_metric} is not acceptable! use something like mean_absolute_error(y_true, y_pred)')
  
         def objective(trial):
             metric=yaml_data['metric']
@@ -184,24 +158,24 @@ class FLAutoOptunaClassifier:
             }
 
             if self.optimizer=='auto_optuna':                
-                self.model = FLClassifier(**params)
+                self.model = FLRegressor(**params)
             if self.optimizer=='auto_optuna_ray':
-                self.model = FLRayClassifier(**params)
+                self.model = FLRayRegressor(**params)
             self.model.fit(X=self.X_valid,y=self.y_valid,X_valid=None,y_valid=None)
             y_pred = self.model.predict(X=X_valid_test)
             y_true = y_valid_test
             # Calculate accuracy score as the objective
-            score = eval(metrics_for_classification)
+            score = eval(metrics_for_regression)
             if trial.number > 1000 or score > 0.90:
                 # Stop the study if the results are already good enough
                 study.stop()
-                self.model = FLClassifier(**study.best_params)
+                self.model = FLRegressor(**study.best_params)
 
             return score
 
-        study = optuna.create_study(direction='maximize')
+        study = optuna.create_study(direction='minimize')
         study.optimize(objective, n_trials=None)
-        self.model = FLClassifier(**study.best_params)
+        self.model = FLRegressor(**study.best_params)
         print('study.best_params', study.best_params)
         return self.model
 
@@ -271,7 +245,7 @@ class FLAutoOptunaClassifier:
         # Show the plot
         plt.show()
 
-class FLOptunaClassifier:
+class FLOptunaRegressor:
     """FuzzyLearning class"""
 
     def __init__(self,*args,**kwargs):
@@ -422,20 +396,9 @@ class FLOptunaClassifier:
 
             if isinstance(self.X_train, np.ndarray):
                 self.X_valid,X_valid_test,self.y_valid,y_valid_test = train_test_split(self.X_train,self.y_train,test_size=.5) 
-                num_unique = len(np.unique(self.y_valid))<=2
-                if len(np.unique(self.y_valid))<=2:
-                    problem_type = 'binery'
-                else:
-                    problem_type = 'multi-class'
 
             elif isinstance(self.X_train,pd.DataFrame):
                 self.X_valid,X_valid_test,self.y_valid,y_valid_test = train_test_split(self.X_train,self.y_train,test_size=.5) 
-                num_unique = len(self.y_valid.nunique())<=2
-                if len(self.y_valid.nunique())<=2:
-                    problem_type = 'binery'
-                else:
-                    problem_type = 'multi-class'
-
             else:
                 raise ValueError(f"this type of data {type(self.X_train)} is not supported for X_valid !!!")
     
@@ -449,26 +412,14 @@ class FLOptunaClassifier:
             except yaml.YAMLError as e:
                 print("Error loading YAML file:", e)  
         if self.optimizer=='optuna' or self.optimizer=='optuna_ray':                
-            if problem_type =='binery':
-                for mtr in yaml_data['metrics_for_classification']:
-                    str1 = set(self.error_measurement_metric.lower())  # Convert characters to lowercase and create a set
-                    str2 = set(mtr.lower())
-                    common_characters = str1.intersection(str2)
-                    if len(common_characters) >= 0.9 * len(str1):
-                        metrics_for_classification = mtr
-                        break
-            if metrics_for_classification is None:
-                raise ValueError(f'{self.error_measurement_metric} is not acceptable! use something like f1_score(y_true, y_pred, average="weighted")')
-        if problem_type =='multi-class':
-            if problem_type =='binery':
-                for mtr in yaml_data['metrics_for_classification_multi']:
-                    str1 = set(self.error_measurement_metric.lower())  # Convert characters to lowercase and create a set
-                    str2 = set(mtr.lower())
-                    common_characters = str1.intersection(str2)
-                    if len(common_characters) >= 0.9 * len(str1):
-                        metrics_for_classification = mtr
-                        break
-            if metrics_for_classification is None:
+            for mtr in yaml_data['metrics_for_regression']:
+                str1 = set(self.error_measurement_metric.lower())  # Convert characters to lowercase and create a set
+                str2 = set(mtr.lower())
+                common_characters = str1.intersection(str2)
+                if len(common_characters) >= 0.9 * len(str1):
+                    metrics_for_regression = mtr
+                    break
+            if metrics_for_regression is None:
                 raise ValueError(f'{self.error_measurement_metric} is not acceptable! use something like f1_score(y_true, y_pred, average="weighted")')
  
         def objective(trial):
@@ -493,25 +444,25 @@ class FLOptunaClassifier:
                 "fuzzy_cut":fuzzy_cut,
             }
             if self.optimizer=='optuna':
-                self.model = FLClassifier(**params)
+                self.model = FLRegressor(**params)
             if self.optimizer=='optuna_ray':
-                self.model = FLRayClassifier(**params)
+                self.model = FLRayRegressor(**params)
             
             self.model.fit(X=self.X_valid,y=self.y_valid,X_valid=None,y_valid=None)
             y_pred = self.model.predict(X=X_valid_test)
             y_true = y_valid_test
             # Calculate accuracy score as the objective
-            score = eval(metrics_for_classification)
+            score = eval(metrics_for_regression)
             if trial.number > 1000 or score > 0.90:
                 # Stop the study if the results are already good enough
                 study.stop()
-                self.model = FLClassifier(**study.best_params)
+                self.model = FLRegressor(**study.best_params)
 
             return score
 
-        study = optuna.create_study(direction='maximize')
+        study = optuna.create_study(direction='minimize')
         study.optimize(objective, n_trials=self.n_trials)
-        self.model = FLClassifier(**study.best_params)
+        self.model = FLRegressor(**study.best_params)
         print('study.best_params', study.best_params)
         return self.model
 
