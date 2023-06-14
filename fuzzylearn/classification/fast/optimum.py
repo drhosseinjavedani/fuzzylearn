@@ -195,7 +195,10 @@ class FLAutoOptunaClassifier:
             if trial.number > 1000 or score > 0.90:
                 # Stop the study if the results are already good enough
                 study.stop()
-                self.model = FLClassifier(**study.best_params)
+                if self.optimizer=='auto_optuna':                
+                    self.model = FLClassifier(**study.best_params)
+                if self.optimizer=='auto_optuna_ray':
+                    self.model = FLRayClassifier(**study.best_params)
 
             return score
 
@@ -505,8 +508,11 @@ class FLOptunaClassifier:
             if trial.number > 1000 or score > 0.90:
                 # Stop the study if the results are already good enough
                 study.stop()
-                self.model = FLClassifier(**study.best_params)
-
+                if self.optimizer=='optuna':
+                    self.model = FLClassifier(**study.best_params)
+                if self.optimizer=='optuna_ray':
+                    self.model = FLRayClassifier(**study.best_params)
+            
             return score
 
         study = optuna.create_study(direction='maximize')

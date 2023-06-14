@@ -5,7 +5,7 @@ from sklearn.metrics import *
 from fuzzylearn.util.read_data import read_yaml_file
 import ray
 from fuzzylearn.util.helpers import fuzzifying,process_train_data,trained_model_for_X_y
-from fuzzylearn.regression.fast.fast import FLRegressor
+from fuzzylearn.interfaces.interfaces import IFLRayRegressor
 ray.init()
 
 class FLRayRegressor:

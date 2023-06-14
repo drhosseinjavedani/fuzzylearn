@@ -166,11 +166,13 @@ class FLAutoOptunaRegressor:
             y_true = y_valid_test
             # Calculate accuracy score as the objective
             score = eval(metrics_for_regression)
-            if trial.number > 1000 or score > 0.90:
+            if trial.number > 1000 or score < 0.05:
                 # Stop the study if the results are already good enough
                 study.stop()
-                self.model = FLRegressor(**study.best_params)
-
+                if self.optimizer=='auto_optuna':                
+                    self.model = FLRegressor(**study.best_params)
+                if self.optimizer=='auto_optuna_ray':
+                    self.model = FLRayRegressor(**study.best_params)
             return score
 
         study = optuna.create_study(direction='minimize')
@@ -453,10 +455,13 @@ class FLOptunaRegressor:
             y_true = y_valid_test
             # Calculate accuracy score as the objective
             score = eval(metrics_for_regression)
-            if trial.number > 1000 or score > 0.90:
+            if trial.number > 1000 or score < 0.05:
                 # Stop the study if the results are already good enough
                 study.stop()
-                self.model = FLRegressor(**study.best_params)
+                if self.optimizer=='optuna':
+                    self.model = FLRegressor(**study.best_params)
+                if self.optimizer=='optuna_ray':
+                    self.model = FLRayRegressor(**study.best_params)
 
             return score
 

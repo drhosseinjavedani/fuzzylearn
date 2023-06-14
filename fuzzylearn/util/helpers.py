@@ -128,8 +128,8 @@ def fuzzifying(*args, **kwargs):
                     if np.modf((X[row_i,col_j]-split_dict[col_j][0])/split_dict[col_j][2])[0]>=0.5:
                         XX[row_i,2*col_j]=((X[row_i,col_j]-split_dict[col_j][0])/split_dict[col_j][2]).round(decimals=0).astype(int)
                         XX[row_i,2*col_j+1]=((X[row_i,col_j]-split_dict[col_j][0])/split_dict[col_j][2])+split_dict[col_j][2]/2
-    X_copy = np.copy(X)
     if fuzzy_type=='triangular':
+        X_copy = np.copy(X)
         number_of_intervals=kwargs['number_of_intervals']
         split_dict = fuzzify_info(data = X_copy, number_of_intervals=number_of_intervals)
         # row_i iterate in rows of X_transpose 
