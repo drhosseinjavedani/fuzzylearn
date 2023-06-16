@@ -64,7 +64,7 @@ pipeline {
                               usernameVariable: 'username',
                               passwordVariable: 'password',
                               ),
-                              usernamePassword(credentialsId: 'fuzzylearn-git-login-with-fine-grained-token',
+                              usernamePassword(credentialsId: 'fuzzylearn-git-login-info',
                               usernameVariable: 'gitusername',
                               passwordVariable: 'gitpassword',
                               )
