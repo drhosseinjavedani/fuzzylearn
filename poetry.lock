@@ -1515,16 +1515,6 @@ files = [
 ]
 
 [[package]]
-name = "sklearn"
-version = "0.0.post5"
-description = "deprecated sklearn package, use scikit-learn instead"
-optional = false
-python-versions = "*"
-files = [
-    {file = "sklearn-0.0.post5.tar.gz", hash = "sha256:7377c714a03a79bbe9196f435db931fd2a6fa8c68514da7ed3a251fd08c52e2c"},
-]
-
-[[package]]
 name = "sqlalchemy"
 version = "2.0.16"
 description = "Database Abstraction Library"
@@ -1777,4 +1767,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "3.8.5"
-content-hash = "a6f7894203ee509e516a5118e4e09ab7b19bd7ef51a8ec0b9cf41d2679a06c76"
+content-hash = "e400ad4587c015f4a95e67d9d66e9079aa69f2864907e322cdacf427a9f535f2"
