@@ -1,8 +1,8 @@
 
-FROM python:3.10
+FROM python:3.8.5
 
 RUN useradd -ms /bin/sh admin
-COPY --chown=admin:admin . /lohrasb
+COPY --chown=admin:admin . /fuzzylearn
  
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -12,10 +12,10 @@ ENV username = $username
 ENV password = $password
 ENV gitusername = $gitusername
 ENV gitpassword = $gitpassword
-ENV POETRY_VERSION=1.3.2
+ENV POETRY_VERSION=1.5.1
 
 # Install and setup poetry
-WORKDIR /lohrasb
+WORKDIR /fuzzylearn
 RUN pip3 install --upgrade pip
 RUN pip install "poetry==$POETRY_VERSION"
 RUN poetry config virtualenvs.create false

@@ -1,8 +1,11 @@
-from fuzzylearn.regression.fast.optimum import FLOptunaRegressor 
-from sklearn.metrics import r2_score,mean_absolute_error 
 import time
-from sklearn.model_selection import train_test_split
+
 import numpy as np
+from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.model_selection import train_test_split
+
+from fuzzylearn.regression.fast.optimum import FLOptunaRegressor
+
 # Define the correlation matrix
 correlation_matrix = np.array([[1.0, 0.8], [0.8, 1.0]])
 
@@ -18,8 +21,16 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 start_time = time.time()
-model = FLOptunaRegressor(optimizer = "optuna",fuzzy_type_list=['simple','triangular'],fuzzy_cut_range=[0.05,0.45],metrics_list=['cosine','manhattan'],number_of_intervals_range=[5,14],threshold_range=[0.1,12.0], error_measurement_metric= 'mean_absolute_error(y_true, y_pred)')
-model.fit(X=X_train,y=y_train,X_valid=None,y_valid=None)
+model = FLOptunaRegressor(
+    optimizer="optuna",
+    fuzzy_type_list=["simple", "triangular"],
+    fuzzy_cut_range=[0.05, 0.45],
+    metrics_list=["cosine", "manhattan"],
+    number_of_intervals_range=[5, 14],
+    threshold_range=[0.1, 12.0],
+    error_measurement_metric="mean_absolute_error(y_true, y_pred)",
+)
+model.fit(X=X_train, y=y_train, X_valid=None, y_valid=None)
 print("--- %s seconds for training ---" % (time.time() - start_time))
 
 start_time = time.time()
@@ -31,7 +42,3 @@ print("r2 score :")
 print(r2_score(y_test, y_pred))
 print("mean absolute error : ")
 print(mean_absolute_error(y_test, y_pred))
-
-
-
-

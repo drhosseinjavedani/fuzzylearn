@@ -2,24 +2,24 @@ import nox
 import argparse
 
 @nox.session(python=False)
-def tests_lohrasb(session):
+def tests_fuzzylearn(session):
     """Run test session using nox"""
     session.run('poetry', 'shell')
     session.run('poetry', 'install')
     session.run('pytest')
 
 @nox.session
-def lint_lohrasb(session):
+def lint_fuzzylearn(session):
     """Run lint session using nox"""
     session.install("flake8","black","isort")
-    session.run("isort","./lohrasb/")
-    session.run("black","./lohrasb/")
+    session.run("isort","./fuzzylearn/")
+    session.run("black","./fuzzylearn/")
     session.run(
         'flake8',
-        '--ignore=E501,I202,W503,E203,F401,F401,F405,F403,F841',"./lohrasb/")
+        '--ignore=E501,I202,W503,E203,F401,F401,F405,F403,F841',"./fuzzylearn/")
 
 @nox.session
-def release_lohrasb(session):
+def release_fuzzylearn(session):
     """
     Kicks off an automated release process by creating and pushing a new tag.
 
@@ -88,7 +88,7 @@ def release_lohrasb(session):
     session.run("git", "config","--global","user.email",useremail,external=True)
     session.run("git", "config","--global","user.name",username,external=True)
     session.run("git", "config","--global","user.password",gitpassword,external=True)
-    session.run("git", "remote","set-url","origin",f"https://{username}:{gitpassword}@github.com/TorkamaniLab/lohrasb.git",external=True)
+    session.run("git", "remote","set-url","origin",f"https://{username}:{gitpassword}@github.com/drhosseinjavedani/fuzzylearn.git",external=True)
     session.run("git", "branch","temp-branch",external=True)
     session.run("git", "checkout", 'main',external=True)
     session.run("git", "merge", 'temp-branch',external=True)

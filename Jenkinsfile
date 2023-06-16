@@ -6,14 +6,14 @@ pipeline {
 
     stages {
 
-        stage("Download-data-build-test-lohrasb"){
+        stage("Download-data-build-test-fuzzylearn"){
 
              steps {
 
                                             sh '''
                                                  docker version
                                                  docker info
-                                                 docker build -f Dockerfile.test -t build-image-test-lohrasb .
+                                                 docker build -f Dockerfile.test -t build-image-test-fuzzylearn .
                                             '''
 
 
@@ -21,7 +21,7 @@ pipeline {
 
         }
 
-        stage("build-container-test-lohrasb") {
+        stage("build-container-test-fuzzylearn") {
             
 
                  
@@ -30,7 +30,7 @@ pipeline {
                                             
 
                                                 sh '''
-                                                 docker run build-image-test-lohrasb
+                                                 docker run build-image-test-fuzzylearn
                                                 '''
                                             
             
@@ -39,21 +39,21 @@ pipeline {
 
          
         
-        stage("build-image-pypi-lohrasb") {
+        stage("build-image-pypi-fuzzylearn") {
                  
              steps {
 
                                                  sh '''
                                                  docker version
                                                  docker info
-                                                 docker build -f Dockerfile.publish -t build-image-pypi-lohrasb .
+                                                 docker build -f Dockerfile.publish -t build-image-pypi-fuzzylearn .
                                                  '''
 
             
                  }
             }
     
-        stage("build-container-pypi-lohrasb") {
+        stage("build-container-pypi-fuzzylearn") {
             
 
                  
@@ -64,7 +64,7 @@ pipeline {
                               usernameVariable: 'username',
                               passwordVariable: 'password',
                               ),
-                              usernamePassword(credentialsId: 'loh-git-login-with-fine-grained-token',
+                              usernamePassword(credentialsId: 'fuzzylearn-git-login-with-fine-grained-token',
                               usernameVariable: 'gitusername',
                               passwordVariable: 'gitpassword',
                               )

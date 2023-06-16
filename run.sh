@@ -1,4 +1,4 @@
 #!/bin/bash
-nox -s tests_lohrasb
-nox -s lint_lohrasb
+nox -s tests_fuzzylearn
+nox -s lint_fuzzylearn
 
