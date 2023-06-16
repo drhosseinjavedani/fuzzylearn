@@ -60,7 +60,7 @@ pipeline {
              steps {
 
                  withCredentials([
-                              usernamePassword(credentialsId: 'twine-login-info-lohrasb',
+                              usernamePassword(credentialsId: 'twine-login-info-fuzzylearn',
                               usernameVariable: 'username',
                               passwordVariable: 'password',
                               ),
@@ -74,7 +74,7 @@ pipeline {
                                               {
 
                                                  sh '''
-                                                 docker run --env username=${username} --env password=${password} --env gitusername=${gitusername}  --env gitpassword=${gitpassword} build-image-pypi-lohrasb
+                                                 docker run --env username=${username} --env password=${password} --env gitusername=${gitusername}  --env gitpassword=${gitpassword} build-image-pypi-fuzzylearn
                                                  '''
                                               }
             
